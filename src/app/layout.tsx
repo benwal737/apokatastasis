@@ -51,13 +51,11 @@ export default function RootLayout({
                 <div className="fixed top-0 left-0 right-0 z-50">
                   <Header />
                 </div>
-                <div className="flex flex-1 pt-16 h-full">
+                <div className="flex flex-1 pt-14 h-full">
                   <div className="h-[calc(100vh-4rem)] sticky top-16">
                     <AppSidebar />
                   </div>
-                  <main className="flex-1 overflow-auto h-[calc(100vh-4rem)]">
-                    {children}
-                  </main>
+                  <main className="flex-1 overflow-auto">{children}</main>
                 </div>
               </div>
             </ThemeProvider>
