@@ -1,4 +1,4 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+import { UserIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -13,29 +13,24 @@ import {
 
 const items = [
   {
-    title: "Home",
+    title: "Kai Cenat",
     url: "#",
-    icon: Home,
+    icon: UserIcon,
   },
   {
-    title: "Inbox",
+    title: "Shadow Lord",
     url: "#",
-    icon: Inbox,
+    icon: UserIcon,
   },
   {
-    title: "Calendar",
+    title: "Random Channel",
     url: "#",
-    icon: Calendar,
+    icon: UserIcon,
   },
   {
-    title: "Search",
+    title: "Random Event",
     url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
+    icon: UserIcon,
   },
 ];
 
@@ -44,15 +39,22 @@ export function AppSidebar() {
     <Sidebar className="top-[var(--header-height)]">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Recommended</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <div className="rounded-full bg-sidebar-accent p-1">
+                            <item.icon className="size-4" />
+                          </div>
+                          <span>{item.title}</span>
+                        </div>
+                        <div className="bg-destructive size-1 rounded-full"></div>
+                      </div>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
