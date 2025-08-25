@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/app/globals.css";
+import { RenderMounted } from "@/components/render-mounted";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,24 +42,26 @@ export default function RootLayout({
               } as React.CSSProperties
             }
           >
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <div className="flex h-full w-full flex-col">
-                <div className="fixed top-0 left-0 right-0 z-50">
-                  <Header />
-                </div>
-                <div className="flex flex-1 pt-14 h-full">
-                  <div className="h-[calc(100vh-4rem)] sticky top-16">
-                    <AppSidebar />
+            <RenderMounted>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <div className="flex h-full w-full flex-col">
+                  <div className="fixed top-0 left-0 right-0 z-50">
+                    <Header />
                   </div>
-                  <main className="flex-1 overflow-auto">{children}</main>
+                  <div className="flex flex-1 pt-14 h-full">
+                    <div className="h-[calc(100vh-4rem)] sticky top-16">
+                      <AppSidebar />
+                    </div>
+                    <main className="flex-1 overflow-auto">{children}</main>
+                  </div>
                 </div>
-              </div>
-            </ThemeProvider>
+              </ThemeProvider>
+            </RenderMounted>
           </body>
         </html>
       </ClerkProvider>
