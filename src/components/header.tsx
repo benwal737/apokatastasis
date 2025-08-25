@@ -9,8 +9,18 @@ import {
 import Link from "next/link";
 import { Input } from "./ui/input";
 import { ModeToggle } from "./mode-toggle";
+import { currentUser } from "@clerk/nextjs/server";
 
 export function Header({ hideSearch }: { hideSearch?: boolean }) {
+  const HeaderIcons = async () => {
+    const user = await currentUser();
+    const userButtonAppearance = {
+      elements: {
+        userButtonAvatarBox: "w-10 h-10",
+      },
+    };
+    return <UserButton appearance={userButtonAppearance} />;
+  };
   return (
     <header className="flex h-[var(--header-height)] items-center justify-between gap-4 border-b px-4 w-full bg-background z-50 sticky top-0">
       <div className="flex items-center gap-2">
@@ -32,7 +42,8 @@ export function Header({ hideSearch }: { hideSearch?: boolean }) {
           </SignUpButton>
         </SignedOut>
         <SignedIn>
-          <UserButton />
+          <Button variant="default">Create</Button>
+          <HeaderIcons />
         </SignedIn>
       </div>
     </header>
