@@ -167,6 +167,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  .cl-profileSectionPrimaryButton__username {
+    display: none !important;
+  }
 }
 
 @import "@clerk/themes/shadcn.css";
