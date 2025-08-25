@@ -9,13 +9,13 @@ import {
 import Link from "next/link";
 import { Input } from "./ui/input";
 
-export function Header() {
+export function Header({ hideSearch }: { hideSearch?: boolean }) {
   return (
     <header className="flex h-[var(--header-height)] items-center justify-between gap-4 border-b px-4 w-full bg-background z-50 sticky top-0">
       <Link href="/" className="flex items-center gap-x-4">
         <span className="font-semibold text-2xl">Apokatastasis</span>
       </Link>
-      <div className="flex items-center w-1/2">
+      <div className="flex items-center w-1/2" hidden={hideSearch}>
         <Input placeholder="Search..." />
       </div>
       <div className="flex items-center gap-x-4">

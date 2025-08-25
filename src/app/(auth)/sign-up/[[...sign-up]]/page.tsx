@@ -1,5 +1,5 @@
-import { SignUp } from '@clerk/nextjs'
-import { ChartLine, Clock, ShieldCheck, Sparkles } from 'lucide-react'
+import { SignUp } from "@clerk/nextjs";
+import { UserPlus, MessageSquare, Radio, Cctv } from "lucide-react";
 
 export default function SignUpPage() {
   return (
@@ -8,38 +8,38 @@ export default function SignUpPage() {
         <ul className="max-w-sm space-y-8">
           <li>
             <div className="flex items-center gap-2">
-              <Clock className="size-4" />
-              <p className="font-semibold">Save on development time</p>
+              <MessageSquare className="size-4" />
+              <p className="font-semibold">Chat</p>
             </div>
             <p className="text-muted-foreground mt-2 text-sm">
-              Add authentication and user management to your app with just a few lines of code.
+              Join the conversation and chat with others in the stream.
             </p>
           </li>
           <li>
             <div className="flex items-center gap-2">
-              <ChartLine className="size-4" />
-              <p className="font-semibold">Increase engagement</p>
+              <UserPlus className="size-4" />
+              <p className="font-semibold">Follow</p>
             </div>
             <p className="text-muted-foreground mt-2 text-sm">
-              Add intuitive UIs designed to decrease friction for your users.
+              Follow your favorite channels and never miss when they go live.
             </p>
           </li>
           <li>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4" />
-              <p className="font-semibold">Protect your users</p>
+              <Radio className="size-4" />
+              <p className="font-semibold">Go Live</p>
             </div>
             <p className="text-muted-foreground mt-2 text-sm">
-              Enable features like two-step verification and enjoy automatic security updates.
+              Go live and share your stream with the world.
             </p>
           </li>
           <li>
             <div className="flex items-center gap-2">
-              <Sparkles className="size-4" />
-              <p className="font-semibold">Match your brand</p>
+              <Cctv className="size-4" />
+              <p className="font-semibold">Host POV</p>
             </div>
             <p className="text-muted-foreground mt-2 text-sm">
-              Theme our pre-built components, or integrate with our easy-to-use APIs.
+              Join other streams as an additional POV contributor.
             </p>
           </li>
         </ul>
@@ -48,5 +48,5 @@ export default function SignUpPage() {
         <SignUp />
       </div>
     </div>
-  )
+  );
 }
