@@ -51,7 +51,7 @@ export function Header({
           <Button
             variant="default"
             onClick={() => {
-              router.push("/create");
+              router.push("/room/create");
             }}
             hidden={hideCreate}
           >

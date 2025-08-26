@@ -23,7 +23,7 @@ model User {
 model Room {
   id        String   @id @default(cuid())
   name      String
-  slug      String  @unique
+  slug      String   @unique
   isLive    Boolean  @default(false)
   hostId    String
   host      User     @relation(fields: [hostId], references: [id])
@@ -62,8 +62,9 @@ model Pov {
   // If this POV is driven by a browser publisher, link the participant:
   // currentPublisherId String?      @unique
   // currentPublisher   Participant? @relation("PovPublisher", fields: [currentPublisherId], references: [id])
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  username String
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
 }
 
 // model Participant {

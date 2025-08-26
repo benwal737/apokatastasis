@@ -10,10 +10,12 @@ import {
   CreateIngressOptions,
   IngressVideoEncodingOptions,
   IngressVideoOptions,
+  IngressAudioEncodingOptions,
+  IngressAudioOptions,
 } from "livekit-server-sdk";
 import prisma from "@/lib/prisma";
 import { getSelf } from "@/lib/auth-service";
-import { Room } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 const roomService = new RoomServiceClient(
   process.env.LIVEKIT_API_URL!,
@@ -43,7 +45,8 @@ export const resetIngresses = async (hostId: string) => {
 
 export const createIngress = async (
   ingressType: IngressInput,
-  roomId: string
+  roomId: string,
+  label: string
 ) => {
   const self = await getSelf();
   if (!self) {
@@ -69,6 +72,13 @@ export const createIngress = async (
         value: IngressVideoEncodingPreset.H264_1080P_30FPS_3_LAYERS,
       },
     });
+    options.audio = new IngressAudioOptions({
+      source: TrackSource.MICROPHONE,
+      encodingOptions: {
+        case: "preset",
+        value: IngressAudioEncodingPreset.OPUS_STEREO_96KBPS,
+      },
+    });
   }
 
   const ingress = await ingressClient.createIngress(ingressType, options);
@@ -77,16 +87,27 @@ export const createIngress = async (
     throw new Error("Failed to create ingress");
   }
 
-  await prisma.pov.create({
+  const pov = await prisma.pov.create({
     data: {
       roomId,
-      label: self.username,
+      label,
+      username: self.username,
       userId: self.id,
       ingressId: ingress.ingressId,
       serverUrl: ingress.url,
       streamKey: ingress.streamKey,
     },
+    select: {
+      id: true,
+    },
   });
 
-  return ingress;
+  revalidatePath(`/room/${roomId}`);
+
+  return {
+    povId: pov.id,
+    ingressId: ingress.ingressId,
+    url: ingress.url,
+    streamKey: ingress.streamKey,
+  };
 };

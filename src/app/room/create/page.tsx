@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -20,6 +19,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createRoom } from "../actions";
 import { RoomInput } from "@/types";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Min 1 character").max(15, "Max 15 characters"),
@@ -28,6 +28,7 @@ const formSchema = z.object({
 
 const page = () => {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -38,9 +39,11 @@ const page = () => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const slug = await createRoom(values as RoomInput);
-      toast.success("Room created successfully");
-      router.push(`/room/${slug}`);
+      startTransition(async () => {
+        const slug = await createRoom(values as RoomInput);
+        toast.success("Room created successfully");
+        router.push(`/room/${slug}`);
+      });
     } catch (error) {
       console.error("Form submission error", error);
       toast.error("Failed to submit the form. Please try again.");
@@ -88,7 +91,10 @@ const page = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={form.watch("name") === ""}>
+              <Button
+                type="submit"
+                disabled={form.watch("name") === "" || isPending}
+              >
                 Create
               </Button>
             </form>
