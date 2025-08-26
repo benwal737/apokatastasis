@@ -11,7 +11,7 @@ export default function RootLayout({
     <SidebarProvider>
       <div className="flex h-full w-full flex-col">
         <div className="fixed top-0 left-0 right-0 z-50">
-          <Header />
+          <Header hideSearch hideCreate />
         </div>
         <div className="flex flex-1 pt-16 h-full">
           <div className="h-[calc(100vh-4rem)] sticky top-16">

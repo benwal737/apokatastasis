@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   SignInButton,
@@ -9,11 +11,17 @@ import {
 import Link from "next/link";
 import { Input } from "./ui/input";
 import { ModeToggle } from "./mode-toggle";
-import { currentUser } from "@clerk/nextjs/server";
+import { useRouter } from "next/navigation";
 
-export function Header({ hideSearch }: { hideSearch?: boolean }) {
-  const HeaderIcons = async () => {
-    const user = await currentUser();
+export function Header({
+  hideSearch,
+  hideCreate,
+}: {
+  hideSearch?: boolean;
+  hideCreate?: boolean;
+}) {
+  const router = useRouter();
+  const HeaderIcons = () => {
     const userButtonAppearance = {
       elements: {
         userButtonAvatarBox: "w-10 h-10",
@@ -23,12 +31,9 @@ export function Header({ hideSearch }: { hideSearch?: boolean }) {
   };
   return (
     <header className="flex h-[var(--header-height)] items-center justify-between gap-4 border-b px-4 w-full bg-background z-50 sticky top-0">
-      <div className="flex items-center gap-2">
-        <Link href="/" className="flex items-center gap-x-4">
-          <span className="font-semibold text-2xl">Apokatastasis</span>
-        </Link>
-        <ModeToggle />
-      </div>
+      <Link href="/" className="flex items-center gap-x-4">
+        <span className="font-semibold text-2xl">Apokatastasis</span>
+      </Link>
       <div className="flex items-center w-1/2" hidden={hideSearch}>
         <Input placeholder="Search..." />
       </div>
@@ -41,8 +46,17 @@ export function Header({ hideSearch }: { hideSearch?: boolean }) {
             <Button>Sign up</Button>
           </SignUpButton>
         </SignedOut>
+        <ModeToggle />
         <SignedIn>
-          <Button variant="default">Create</Button>
+          <Button
+            variant="default"
+            onClick={() => {
+              router.push("/create");
+            }}
+            hidden={hideCreate}
+          >
+            Create Room
+          </Button>
           <HeaderIcons />
         </SignedIn>
       </div>

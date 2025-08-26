@@ -8,16 +8,16 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(cuid())
-  username       String        @unique
-  imageUrl       String        @db.Text
-  externalUserId String        @unique
-  bio            String?       @db.Text
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  participants   Participant[]
+  id             String    @id @default(cuid())
+  username       String    @unique
+  imageUrl       String    @db.Text
+  externalUserId String    @unique
+  bio            String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   messages       Message[]
   rooms          Room[]
+  povs           Pov[]
 }
 
 model Room {
@@ -29,11 +29,10 @@ model Room {
   host      User     @relation(fields: [hostId], references: [id])
   createdAt DateTime @default(now())
 
-  povs         Pov[]
-  joinCode     String
-  participants Participant[]
-  messages     Message[]
-  egress       RoomEgress?
+  povs     Pov[]
+  joinCode String
+  messages Message[]
+  egress   RoomEgress?
 }
 
 model RoomEgress {
@@ -46,46 +45,41 @@ model RoomEgress {
 }
 
 model Pov {
-  id         String @id @default(cuid())
-  roomId     String
-  room       Room   @relation(fields: [roomId], references: [id])
-  label      String
-  sourceType String // webrtc | ingress_rtmp | ingress_whip
-  order      Int    @default(0)
-  status     String @default("offline") // offline | live | pending
+  id     String @id @default(cuid())
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id])
+  label  String
+  // sourceType String // webrtc | ingress_rtmp | ingress_whip
+  order  Int    @default(0)
+  status String @default("offline") // offline | live | pending
 
   // If this POV is fed by LiveKit Ingress (OBS/hardware), store it here:
-  ingress PovIngress?
+  ingressId String // livekit ingress resource ID
+  serverUrl String
+  streamKey String
 
   // If this POV is driven by a browser publisher, link the participant:
-  currentPublisherId String?      @unique
-  currentPublisher   Participant? @relation("PovPublisher", fields: [currentPublisherId], references: [id])
+  // currentPublisherId String?      @unique
+  // currentPublisher   Participant? @relation("PovPublisher", fields: [currentPublisherId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 }
 
-model PovIngress {
-  id           String @id @default(cuid())
-  povId        String @unique
-  pov          Pov    @relation(fields: [povId], references: [id])
-  provider     String // livekit
-  ingressId    String // livekit ingress resource ID
-  serverUrl    String
-  streamKeyEnc String // store encrypted, not plaintext
-}
+// model Participant {
+//   id          String   @id @default(cuid())
+//   roomId      String
+//   room        Room     @relation(fields: [roomId], references: [id])
+//   userId      String
+//   user        User     @relation(fields: [userId], references: [id])
+//   displayName String
+//   role        String // host | contributor
+//   joinedAt    DateTime @default(now())
+//   lastSeenAt  DateTime @default(now())
 
-model Participant {
-  id          String   @id @default(cuid())
-  roomId      String
-  room        Room     @relation(fields: [roomId], references: [id])
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  displayName String
-  role        String // host | contributor
-  joinedAt    DateTime @default(now())
-  lastSeenAt  DateTime @default(now())
-
-  // reverse side of the "currentPublisher" relation:
-  publishedPov Pov? @relation("PovPublisher")
-}
+//   // reverse side of the "currentPublisher" relation:
+//   // publishedPov Pov?    @relation("PovPublisher", fields: [povId], references: [id])
+//   povId        String?
+// }
 
 model Message {
   id       String   @id @default(cuid())
