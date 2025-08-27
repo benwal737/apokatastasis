@@ -1,103 +1,89 @@
-"use client";
-
 import {
   Room,
   RoomEvent,
   RemoteParticipant,
   RemoteTrack,
   RemoteTrackPublication,
-  TrackPublication,
-  VideoTrack,
-  AudioTrack,
   Track,
+  VideoPresets,
+  createLocalTracks,
+  LocalTrack,
+  LocalVideoTrack,
 } from "livekit-client";
 
 export async function connectViewer(opts: {
-  wsUrl: string; // e.g. process.env.NEXT_PUBLIC_LIVEKIT_WS_URL!
-  token: string; // server-generated JWT
-  container: HTMLElement; // where to append <video>/<audio>
+  wsUrl: string;
+  token: string;
+  container?: HTMLElement;
+  onTrackSubscribed?: (
+    track: MediaStreamTrack,
+    publication: RemoteTrackPublication,
+    participant: RemoteParticipant
+  ) => void;
+  onTrackUnsubscribed?: (
+    track: MediaStreamTrack,
+    publication: RemoteTrackPublication,
+    participant: RemoteParticipant
+  ) => void;
 }) {
-  const room = new Room();
-
-  const attach = (track: RemoteTrack, pub: RemoteTrackPublication) => {
-    const trackSid = pub.trackSid;
-    let el: HTMLMediaElement | null = null;
-
-    if (track.kind === Track.Kind.Video) {
-      el = document.createElement("video");
-      el.autoplay = true;
-      el.autoplay = true;
-      (track as VideoTrack).attach(el as HTMLVideoElement);
-    } else if (track.kind === Track.Kind.Audio) {
-      el = document.createElement("audio");
-      el.autoplay = true;
-      (track as AudioTrack).attach(el as HTMLAudioElement);
-    }
-
-    if (el) {
-      el.dataset.lkTrackSid = trackSid;
-      opts.container.appendChild(el);
-    }
-  };
-
-  const detach = (track: RemoteTrack, pub: RemoteTrackPublication) => {
-    const trackSid = pub.trackSid;
-    // Detach via SDK (removes from all attached elements)
-    track.detach();
-    // Also remove our specific element if present
-    const node = opts.container.querySelector(
-      `[data-lk-track-sid="${trackSid}"]`
-    ) as HTMLMediaElement | null;
-    if (node) node.remove();
-  };
-
-  // Room event listeners
-  room.on(RoomEvent.TrackSubscribed, (track, pub, _participant) => {
-    attach(track as RemoteTrack, pub as RemoteTrackPublication);
-  });
-
-  room.on(RoomEvent.TrackUnsubscribed, (track, pub, _participant) => {
-    detach(track as RemoteTrack, pub as RemoteTrackPublication);
-  });
-
-  // Connect
-  await room.connect(opts.wsUrl, opts.token);
-
-  // Attach already-subscribed tracks from existing remote participants
-  // remoteParticipants is a Map<identity, RemoteParticipant>
-  Array.from(room.remoteParticipants.values()).forEach(
-    (p: RemoteParticipant) => {
-      // trackPublications is a Map<sid, TrackPublication>
-      Array.from(p.trackPublications.values()).forEach(
-        (pub: TrackPublication) => {
-          if (pub.isSubscribed && pub.track) {
-            attach(pub.track as RemoteTrack, pub as RemoteTrackPublication);
-          }
-        }
-      );
-    }
-  );
-
-  return {
-    room,
-    disconnect: () => {
-      try {
-        // Clean up rendered elements
-        Array.from(room.remoteParticipants.values()).forEach((p) => {
-          Array.from(p.trackPublications.values()).forEach((pub) => {
-            if (pub.track) {
-              (pub.track as RemoteTrack).detach();
-              const el = opts.container.querySelector(
-                `[data-lk-track-sid="${pub.trackSid}"]`
-              ) as HTMLMediaElement | null;
-              if (el) el.remove();
-            }
-          });
-        });
-      } catch {
-        // no-op
-      }
-      room.disconnect();
+  const room = new Room({
+    adaptiveStream: true,
+    dynacast: true,
+    videoCaptureDefaults: {
+      resolution: VideoPresets.h1080.resolution,
     },
-  };
+  });
+
+  // Handle track subscriptions
+  room
+    .on(
+      RoomEvent.TrackSubscribed,
+      (
+        track: RemoteTrack,
+        publication: RemoteTrackPublication,
+        participant: RemoteParticipant
+      ) => {
+        if (opts.onTrackSubscribed) {
+          opts.onTrackSubscribed(
+            track.mediaStreamTrack,
+            publication,
+            participant
+          );
+        }
+      }
+    )
+    .on(
+      RoomEvent.TrackUnsubscribed,
+      (
+        track: RemoteTrack,
+        publication: RemoteTrackPublication,
+        participant: RemoteParticipant
+      ) => {
+        if (opts.onTrackUnsubscribed) {
+          opts.onTrackUnsubscribed(
+            track.mediaStreamTrack,
+            publication,
+            participant
+          );
+        }
+      }
+    );
+
+  try {
+    // Connect to the room
+    await room.connect(opts.wsUrl, opts.token, {
+      autoSubscribe: true,
+    });
+
+    // Return cleanup function
+    return {
+      disconnect: () => {
+        room.disconnect();
+      },
+      room,
+    };
+  } catch (error) {
+    console.error("Failed to connect to room:", error);
+    throw error;
+  }
 }
