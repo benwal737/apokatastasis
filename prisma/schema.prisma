@@ -50,18 +50,14 @@ model Pov {
   roomId String
   room   Room   @relation(fields: [roomId], references: [id])
   label  String
-  // sourceType String // webrtc | ingress_rtmp | ingress_whip
   order  Int    @default(0)
   status String @default("offline") // offline | live | pending
 
-  // If this POV is fed by LiveKit Ingress (OBS/hardware), store it here:
-  ingressId String // livekit ingress resource ID
-  serverUrl String
-  streamKey String
+  ingressId       String
+  serverUrl       String
+  streamKey       String
+  whipResourceUrl String?
 
-  // If this POV is driven by a browser publisher, link the participant:
-  // currentPublisherId String?      @unique
-  // currentPublisher   Participant? @relation("PovPublisher", fields: [currentPublisherId], references: [id])
   username String
   userId   String
   user     User   @relation(fields: [userId], references: [id])

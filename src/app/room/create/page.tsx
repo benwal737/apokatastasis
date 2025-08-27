@@ -91,10 +91,7 @@ const page = () => {
                   </FormItem>
                 )}
               />
-              <Button
-                type="submit"
-                disabled={form.watch("name") === "" || isPending}
-              >
+              <Button type="submit" disabled={form.watch("name") === "" || isPending}>
                 Create
               </Button>
             </form>

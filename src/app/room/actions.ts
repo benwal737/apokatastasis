@@ -1,6 +1,5 @@
 "use server";
-
-import { RoomInput, Room } from "@/types";
+import { RoomInput } from "@/types";
 import { getSelf } from "@/lib/auth-service";
 import prisma from "@/lib/prisma";
 
@@ -20,7 +19,7 @@ export const createRoom = async (roomInput: RoomInput) => {
   return room.slug;
 };
 
-export const getRoom = async (slug: string): Promise<Room | null> => {
+export const getRoom = async (slug: string) => {
   const room = await prisma.room.findUnique({
     where: {
       slug,
