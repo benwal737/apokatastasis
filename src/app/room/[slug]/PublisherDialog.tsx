@@ -1,7 +1,5 @@
-// components/PublisherDialog.tsx
 "use client";
 
-import * as React from "react";
 import {
   Room,
   createLocalTracks,
@@ -18,30 +16,22 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useEffect, useRef, useState } from "react";
 
 type PublisherDialogProps = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 
-  /** LiveKit WS URL, e.g. process.env.NEXT_PUBLIC_LIVEKIT_URL */
   wsUrl: string;
 
-  /** Publisher JWT for this POV (roomJoin + canPublish, identity = pov.id) */
   token: string;
 
-  /** Heading text (optional) */
   title?: string;
 
-  /** Called once the dialog has successfully connected & published */
   onStarted?: () => void;
 
-  /** Called when user presses "Stop & Close" (after unpublish/disconnect) */
   onStopped?: () => void;
 
-  /**
-   * If true, streaming will stop when this component unmounts (e.g. leaving the page).
-   * Default: true
-   */
   stopOnUnmount?: boolean;
 };
 
@@ -55,23 +45,22 @@ export default function PublisherDialog({
   onStopped,
   stopOnUnmount = true,
 }: PublisherDialogProps) {
-  const [room] = React.useState(
+  const [room] = useState(
     () => new Room({ adaptiveStream: true, dynacast: true })
   );
 
-  const [connecting, setConnecting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [camOn, setCamOn] = React.useState(false);
-  const [micOn, setMicOn] = React.useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [camOn, setCamOn] = useState(false);
+  const [micOn, setMicOn] = useState(false);
 
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const publishedTracksRef = React.useRef<LocalTrack[]>([]);
-  const startedRef = React.useRef(false); // publishing session started
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const publishedTracksRef = useRef<LocalTrack[]>([]);
+  const startedRef = useRef(false);
 
-  // Connect & publish the first time the dialog opens (subsequent opens just show UI)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open || !token) return;
-    if (startedRef.current) return; // already publishing, don't reconnect
+    if (startedRef.current) return;
 
     let mounted = true;
     (async () => {
@@ -126,11 +115,11 @@ export default function PublisherDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, token, wsUrl, room]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (!stopOnUnmount) return;
       try {
-        publishedTracksRef.current.forEach((t) => {
+        publishedTracksRef.current.forEach((t: LocalTrack) => {
           try {
             room.localParticipant.unpublishTrack(t);
           } catch {}
@@ -183,7 +172,7 @@ export default function PublisherDialog({
 
   const stopAndClose = async () => {
     try {
-      publishedTracksRef.current.forEach((t) => {
+      publishedTracksRef.current.forEach((t: LocalTrack) => {
         try {
           room.localParticipant.unpublishTrack(t);
         } catch {}
@@ -203,7 +192,7 @@ export default function PublisherDialog({
 
   const handleOpenChange = (v: boolean) => {
     if (!v) {
-      onOpenChange(false); // hide UI only
+      onOpenChange(false);
       return;
     }
     onOpenChange(true);
