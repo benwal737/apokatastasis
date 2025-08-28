@@ -8,13 +8,11 @@ import {
   RoomServiceClient,
   TrackSource,
   CreateIngressOptions,
-  IngressVideoEncodingOptions,
   IngressVideoOptions,
-  IngressAudioEncodingOptions,
   IngressAudioOptions,
 } from "livekit-server-sdk";
 import prisma from "@/lib/prisma";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 const roomService = new RoomServiceClient(
@@ -25,23 +23,14 @@ const roomService = new RoomServiceClient(
 
 const ingressClient = new IngressClient(process.env.LIVEKIT_API_URL!);
 
-export const resetIngresses = async (hostId: string) => {
-  const ingresses = await ingressClient.listIngress({
-    roomName: hostId,
-  });
-
-  const rooms = await roomService.listRooms([hostId]);
-
-  for (const room of rooms) {
-    await roomService.deleteRoom(room.name);
+async function deleteExistingIngressForPov(ingressId?: string | null) {
+  if (!ingressId) return;
+  try {
+    await ingressClient.deleteIngress(ingressId);
+  } catch (e) {
+    console.warn("deleteExistingIngressForPov failed", e);
   }
-
-  for (const ingress of ingresses) {
-    if (ingress.ingressId) {
-      await ingressClient.deleteIngress(ingress.ingressId);
-    }
-  }
-};
+}
 
 export const createIngress = async (
   ingressType: IngressInput,
@@ -49,17 +38,25 @@ export const createIngress = async (
   label: string
 ) => {
   const self = await getSelf();
-  if (!self) {
-    throw new Error("Unauthorized");
-  }
+  if (!self) throw new Error("Unauthorized");
 
-  await resetIngresses(self.id);
+  const pov = await prisma.pov.create({
+    data: {
+      roomId,
+      label,
+      username: self.username,
+      userId: self.id,
+    },
+    select: { id: true, ingressId: true },
+  });
+
+  await deleteExistingIngressForPov(pov.ingressId);
 
   const options: CreateIngressOptions = {
-    name: self.username,
-    roomName: self.id,
-    participantName: self.username,
-    participantIdentity: self.id,
+    name: label,
+    roomName: roomId,
+    participantName: label,
+    participantIdentity: pov.id,
   };
 
   if (ingressType === IngressInput.WHIP_INPUT) {
@@ -83,22 +80,20 @@ export const createIngress = async (
 
   const ingress = await ingressClient.createIngress(ingressType, options);
 
-  if (!ingress || !ingress.url || !ingress.streamKey) {
-    throw new Error("Failed to create ingress");
+  if (!ingress || !ingress.url) {
+    throw new Error("Failed to create ingress (missing url)");
+  }
+  const needsStreamKey = ingressType !== IngressInput.WHIP_INPUT;
+  if (needsStreamKey && !ingress.streamKey) {
+    throw new Error("Failed to create RTMP ingress (missing stream key)");
   }
 
-  const pov = await prisma.pov.create({
+  await prisma.pov.update({
+    where: { id: pov.id },
     data: {
-      roomId,
-      label,
-      username: self.username,
-      userId: self.id,
-      ingressId: ingress.ingressId,
-      serverUrl: ingress.url,
-      streamKey: ingress.streamKey,
-    },
-    select: {
-      id: true,
+      ingressId: ingress.ingressId ?? null,
+      serverUrl: ingress.url ?? null,
+      streamKey: ingress.streamKey ?? null,
     },
   });
 

@@ -53,9 +53,9 @@ model Pov {
   order  Int    @default(0)
   status String @default("offline") // offline | live | pending
 
-  ingressId       String
-  serverUrl       String
-  streamKey       String
+  ingressId       String?
+  serverUrl       String?
+  streamKey       String?
   whipResourceUrl String?
 
   username String

@@ -1,6 +1,6 @@
 "use server";
 import { RoomInput } from "@/types";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export const createRoom = async (roomInput: RoomInput) => {
