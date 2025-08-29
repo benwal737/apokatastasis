@@ -36,6 +36,7 @@ export default function RoomPage({
   const [label, setLabel] = useState("");
   const [roomToken, setRoomToken] = useState(viewerToken);
   const [myPovId, setMyPovId] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -48,6 +49,7 @@ export default function RoomPage({
     async (title: string) => {
       if (!isMounted) return;
       try {
+        setDialogOpen(false);
         const { token, pov } = await createBrowserPov(roomState.id, title);
         setRoomToken(token);
         setPubToken(token);
@@ -78,8 +80,32 @@ export default function RoomPage({
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">{roomState.name}</h1>
-            <p className="text-muted-foreground">{roomState.joinCode}</p>
           </div>
+          {!isLive && (
+            <SignedIn>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>Go Live</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Go Live</DialogTitle>
+                  </DialogHeader>
+                  <Input
+                    placeholder="Title"
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                  />
+                  <Button onClick={() => goLive(label)}>Go Live</Button>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button>Close</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </SignedIn>
+          )}
         </header>
 
         <ActiveViewer
@@ -92,30 +118,6 @@ export default function RoomPage({
           }}
         />
 
-        <SignedIn>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>Go Live</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Go Live</DialogTitle>
-              </DialogHeader>
-              <Input
-                placeholder="Title"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-              <Button onClick={() => goLive(label)}>Go Live</Button>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button>Close</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </SignedIn>
-
         <PublisherDialog
           open={pubOpen}
           onOpenChange={(isOpen) => {
@@ -126,9 +128,11 @@ export default function RoomPage({
           }}
           onStarted={() => {
             console.log("Stream started");
+            setIsLive(true);
           }}
           onStopped={() => {
             console.log("Stream stopped");
+            setIsLive(false);
             setPubToken("");
           }}
           wsUrl={wsUrl}
