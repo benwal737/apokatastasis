@@ -16,7 +16,6 @@ export async function createBrowserPov(roomId: string, label?: string) {
       userId: self?.id,
       username: self?.username,
     },
-    select: { id: true, label: true },
   });
 
   const apiKey = process.env.LIVEKIT_API_KEY!;
@@ -30,8 +29,10 @@ export async function createBrowserPov(roomId: string, label?: string) {
     roomJoin: true,
     canSubscribe: true,
     canPublish: true,
+    canPublishData: true,
+    canUpdateOwnMetadata: true,
   });
 
   const token = await at.toJwt();
-  return { povId: pov.id, token, label: pov.label };
+  return { token, pov };
 }
