@@ -113,6 +113,7 @@ export default function RoomPage({
           <div className="flex items-center gap-2">
             {isHost && (
               <Button
+                variant="outline"
                 onClick={() => {
                   const code = roomState.joinCode;
                   if (!code) {
@@ -134,7 +135,7 @@ export default function RoomPage({
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Go Live</DialogTitle>
+                      <DialogTitle>Stream Details</DialogTitle>
                     </DialogHeader>
                     <Input
                       placeholder="Join Code"
@@ -152,7 +153,13 @@ export default function RoomPage({
                     <DialogFooter>
                       <Button
                         onClick={() => goLive(label)}
-                        disabled={!joinCode || !label || loading}
+                        disabled={
+                          !joinCode ||
+                          !label ||
+                          loading ||
+                          joinCode.trim().length === 0 ||
+                          label.trim().length === 0
+                        }
                       >
                         Go Live
                       </Button>

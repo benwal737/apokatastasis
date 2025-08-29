@@ -24,19 +24,22 @@ export default function Home({ rooms }: { rooms: RoomWithHost[] }) {
                   <Image
                     src={room.host.imageUrl}
                     alt={room.host.username}
-                    className="size-8 rounded-full"
+                    className="size-10 rounded-full"
                     width={40}
                     height={40}
                   />
-                  <h2 className="text-lg font-semibold">{room.name}</h2>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-semibold">{room.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {room.host.username}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm text-muted-foreground pl-10">
-                  {room.host.username}
-                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Button
+                className="w-full"
                 onClick={() => {
                   router.push(`/room/${room.slug}`);
                 }}
