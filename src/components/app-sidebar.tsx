@@ -1,4 +1,4 @@
-import { UserIcon } from "lucide-react";
+import Image from "next/image";
 
 import {
   Sidebar,
@@ -11,30 +11,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const items = [
-  {
-    title: "Kai Cenat",
-    url: "#",
-    icon: UserIcon,
-  },
-  {
-    title: "Shadow Lord",
-    url: "#",
-    icon: UserIcon,
-  },
-  {
-    title: "Random Channel",
-    url: "#",
-    icon: UserIcon,
-  },
-  {
-    title: "Random Event",
-    url: "#",
-    icon: UserIcon,
-  },
-];
+import { getRecommendedRooms } from "@/lib/recommended";
 
-export function AppSidebar() {
+export async function AppSidebar() {
+  const rooms = await getRecommendedRooms();
   return (
     <Sidebar className="top-[var(--header-height)]">
       <SidebarContent>
@@ -42,16 +22,20 @@ export function AppSidebar() {
           <SidebarGroupLabel>Recommended</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {rooms.map((room) => (
+                <SidebarMenuItem key={room.id}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <a href={`/room/${room.slug}`}>
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <div className="rounded-full bg-sidebar-accent p-1">
-                            <item.icon className="size-4" />
-                          </div>
-                          <span>{item.title}</span>
+                          <Image
+                            src={room.host.imageUrl}
+                            alt={room.host.username}
+                            className="size-5 rounded-full"
+                            width={40}
+                            height={40}
+                          />
+                          <span>{room.name}</span>
                         </div>
                         <div className="bg-destructive size-1 rounded-full"></div>
                       </div>

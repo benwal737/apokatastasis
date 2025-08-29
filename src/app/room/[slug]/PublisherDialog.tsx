@@ -278,9 +278,6 @@ export default function PublisherDialog({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
-              Minimize
-            </Button>
             <Button variant="destructive" onClick={stopAndClose}>
               Stop & Close
             </Button>
