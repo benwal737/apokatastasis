@@ -32,7 +32,7 @@ export default function VideoTile({
     const audioEl = audioRef.current;
     if (!videoEl || !audioEl) return;
     tile.attach(videoEl);
-    
+
     return () => {
       if (videoEl) tile.detach(videoEl);
       if (audioEl) {
@@ -69,7 +69,7 @@ export default function VideoTile({
         {!isMine && (
           <Button
             size="sm"
-            variant="secondary"
+            variant={muted ? "secondary" : "default"}
             onClick={() => {
               if (muted) {
                 setMuted(false);
@@ -98,7 +98,7 @@ export default function VideoTile({
         <div className="absolute bottom-2 right-2">
           <Button
             size="sm"
-            variant="secondary"
+            variant="destructive"
             onClick={() => onManage?.(tile.participantIdentity)}
           >
             Manage

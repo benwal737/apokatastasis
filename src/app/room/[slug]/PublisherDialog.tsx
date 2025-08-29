@@ -48,7 +48,7 @@ export default function PublisherDialog({
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
 
-  // when dialog opens, start publishing
+  // --- start publishing when dialog opens
   useEffect(() => {
     if (!open || !room) return;
     if (startedRef.current) return;
@@ -57,55 +57,44 @@ export default function PublisherDialog({
     (async () => {
       setConnecting(true);
       setStatus(null);
+
       try {
-        try {
-          await room.localParticipant.setCameraEnabled(true);
-          await room.localParticipant.setMicrophoneEnabled(true);
-          await room.localParticipant.setMetadata(
-            JSON.stringify({
-              povLabel: label,
-            })
-          );
-        } catch (err) {
-          if (token) {
-            await room.connect(wsUrl, token);
-            await room.localParticipant.setCameraEnabled(true);
-            await room.localParticipant.setMicrophoneEnabled(true);
-            await room.localParticipant.setMetadata(
-              JSON.stringify({
-                povLabel: label,
-              })
-            );
-          } else {
-            throw err;
-          }
+        if (token) {
+          await room.connect(wsUrl, token);
         }
 
+        await room.localParticipant.setMetadata(
+          JSON.stringify({ povLabel: label })
+        );
+
+        await room.localParticipant.setCameraEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
+
+        const syncState = () => {
+          const camPub = room.localParticipant.getTrackPublication(
+            Track.Source.Camera
+          );
+          const micPub = room.localParticipant.getTrackPublication(
+            Track.Source.Microphone
+          );
+          setCamOn(!!(camPub && !camPub.isMuted));
+          setMicOn(!!(micPub && !micPub.isMuted));
+        };
+
+        // initial attach
         const camPub = room.localParticipant.getTrackPublication(
           Track.Source.Camera
         );
-        if (camPub?.track && videoRef.current) {
+        if (camPub?.track && videoRef.current)
           camPub.track.attach(videoRef.current);
-        }
 
         const micPub = room.localParticipant.getTrackPublication(
           Track.Source.Microphone
         );
-        if (micPub?.track && audioRef.current) {
+        if (micPub?.track && audioRef.current)
           micPub.track.attach(audioRef.current);
-        }
 
-        const sync = () => {
-          const v = room.localParticipant.getTrackPublication(
-            Track.Source.Camera
-          );
-          const a = room.localParticipant.getTrackPublication(
-            Track.Source.Microphone
-          );
-          setCamOn(!!(v && !v.isMuted));
-          setMicOn(!!(a && !a.isMuted));
-        };
-
+        // event handlers
         const handleLocalPublished = (pub: LocalTrackPublication) => {
           if (pub.kind === Track.Kind.Video && pub.track && videoRef.current) {
             pub.track.attach(videoRef.current);
@@ -113,12 +102,13 @@ export default function PublisherDialog({
           if (pub.kind === Track.Kind.Audio && pub.track && audioRef.current) {
             pub.track.attach(audioRef.current);
           }
-          sync();
+          syncState();
         };
 
         room.on(RoomEvent.LocalTrackPublished, handleLocalPublished);
-        room.on(RoomEvent.TrackMuted, sync);
-        room.on(RoomEvent.TrackUnmuted, sync);
+        room.on(RoomEvent.LocalTrackUnpublished, syncState);
+        room.on(RoomEvent.TrackMuted, syncState);
+        room.on(RoomEvent.TrackUnmuted, syncState);
 
         room.on(RoomEvent.Reconnecting, () => setStatus("Reconnecting…"));
         room.on(RoomEvent.Reconnected, () => setStatus(null));
@@ -126,6 +116,7 @@ export default function PublisherDialog({
           setStatus(`Disconnected: ${reason}`)
         );
 
+        syncState();
         startedRef.current = true;
         onStarted?.();
       } catch (e: any) {
@@ -142,46 +133,36 @@ export default function PublisherDialog({
     };
   }, [open, room, token, wsUrl, label]);
 
-  // when dialog reopens, reattach video/audio elements
+  // reattach video/audio when reopening
   useEffect(() => {
     if (!open || !room) return;
-
     const timer = setTimeout(() => {
       const camPub = room.localParticipant.getTrackPublication(
         Track.Source.Camera
       );
+      if (camPub?.track && videoRef.current)
+        camPub.track.attach(videoRef.current);
+
       const micPub = room.localParticipant.getTrackPublication(
         Track.Source.Microphone
       );
-      if (camPub?.track && videoRef.current) {
-        camPub.track.attach(videoRef.current);
-      }
-      if (micPub?.track && audioRef.current) {
+      if (micPub?.track && audioRef.current)
         micPub.track.attach(audioRef.current);
-      }
     }, 100);
-
     return () => clearTimeout(timer);
   }, [open, room]);
 
-  // stop & close
+  // stop publishing
   const stopAndClose = async () => {
     const r = roomRef.current;
     if (!r) return;
     try {
-      const pubs = Array.from(r.localParticipant.trackPublications.values());
-      await Promise.all(
-        pubs.map(async (pub) => {
-          if (pub.track) {
-            try {
-              await r.localParticipant.unpublishTrack(pub.track);
-            } catch {}
-            try {
-              pub.track.stop();
-            } catch {}
-          }
-        })
-      );
+      for (const pub of r.localParticipant.trackPublications.values()) {
+        if (pub.track) {
+          await r.localParticipant.unpublishTrack(pub.track);
+          pub.track.stop();
+        }
+      }
     } catch (e) {
       console.error("stop publishing error", e);
     }
@@ -190,23 +171,18 @@ export default function PublisherDialog({
     onOpenChange(false);
   };
 
-  // cleanup on unmount if requested
+  // cleanup
   useEffect(() => {
     return () => {
       if (!stopOnUnmount) return;
       const r = roomRef.current;
       if (!r || !startedRef.current) return;
-      const pubs = Array.from(r.localParticipant.trackPublications.values());
-      pubs.forEach((pub) => {
+      for (const pub of r.localParticipant.trackPublications.values()) {
         if (pub.track) {
-          try {
-            r.localParticipant.unpublishTrack(pub.track);
-          } catch {}
-          try {
-            pub.track.stop();
-          } catch {}
+          r.localParticipant.unpublishTrack(pub.track);
+          pub.track.stop();
         }
-      });
+      }
       startedRef.current = false;
     };
   }, [stopOnUnmount]);
@@ -214,7 +190,6 @@ export default function PublisherDialog({
   const toggleCamera = async () => {
     try {
       await room?.localParticipant.setCameraEnabled(!camOn);
-      setCamOn((v) => !v);
     } catch (e) {
       console.error(e);
     }
@@ -223,18 +198,13 @@ export default function PublisherDialog({
   const toggleMic = async () => {
     try {
       await room?.localParticipant.setMicrophoneEnabled(!micOn);
-      setMicOn((v) => !v);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleOpenChange = (v: boolean) => {
-    onOpenChange(v);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle>{title}</DialogTitle>
@@ -246,47 +216,32 @@ export default function PublisherDialog({
           </div>
         )}
 
-        <div className="px-5 pb-4">
-          <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-            <video
-              ref={videoRef}
-              className="h-full w-full object-cover"
-              autoPlay
-              playsInline
-              muted={false}
-            />
-            <audio ref={audioRef} autoPlay className="hidden" />
-          </div>
+        <div className="relative aspect-video w-full bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="h-full w-full object-cover"
+          />
+          <audio ref={audioRef} autoPlay playsInline className="hidden" />
         </div>
 
-        <Separator />
-
-        <DialogFooter className="flex w-full items-center gap-2 px-5 pb-4 pt-3">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={camOn ? "default" : "secondary"}
-              onClick={toggleCamera}
-            >
-              {camOn ? "Turn Camera Off" : "Turn Camera On"}
-            </Button>
-            <Button
-              variant={micOn ? "default" : "secondary"}
-              onClick={toggleMic}
-            >
-              {micOn ? "Mute Mic" : "Unmute Mic"}
-            </Button>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="destructive" onClick={stopAndClose}>
-              Stop & Close
-            </Button>
-          </div>
+        <DialogFooter className="flex gap-2 px-5 py-3">
+          <Button
+            variant={camOn ? "default" : "secondary"}
+            onClick={toggleCamera}
+          >
+            {camOn ? "Turn Camera Off" : "Turn Camera On"}
+          </Button>
+          <Button variant={micOn ? "default" : "secondary"} onClick={toggleMic}>
+            {micOn ? "Mute Mic" : "Unmute Mic"}
+          </Button>
+          <Separator orientation="vertical" className="mx-2 h-6" />
+          <Button variant="destructive" onClick={stopAndClose}>
+            Stop
+          </Button>
         </DialogFooter>
-
-        {connecting && (
-          <p className="px-5 pb-4 text-xs text-muted-foreground">Connecting…</p>
-        )}
       </DialogContent>
     </Dialog>
   );
