@@ -9,21 +9,11 @@ import {
   LocalTrackPublication,
   Track,
 } from "livekit-client";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useRoom } from "@/context/RoomContext";
+import VideoTile from "./VideoTile";
+import { Tile } from "./VideoTile";
 
 type PovInfo = { id: string; label: string };
-
-type Tile = {
-  pubSid: string;
-  participantIdentity: string;
-  label: string;
-  attach: (el: HTMLMediaElement) => void;
-  detach: (el: HTMLMediaElement) => void;
-  source?: Track.Source;
-  isLocal?: boolean;
-};
 
 function getParticipantLabel(
   participant: RemoteParticipant | { identity: string; metadata?: string }
@@ -42,7 +32,7 @@ function getParticipantLabel(
   return "POV";
 }
 
-export default function ActiveViewer({
+export default function ViewPanel({
   povs,
   myPovId,
   onManage,
@@ -82,6 +72,7 @@ export default function ActiveViewer({
       upsertTile({
         pubSid: pub.trackSid,
         participantIdentity: participant.identity,
+        participant,
         label,
         attach: (el) => rtrack.attach(el),
         detach: (el) => rtrack.detach(el),
@@ -104,6 +95,7 @@ export default function ActiveViewer({
       upsertTile({
         pubSid: pub.trackSid,
         participantIdentity: room.localParticipant.identity,
+        participant: room.localParticipant,
         label,
         attach: (el) => {
           try {
@@ -219,71 +211,10 @@ export default function ActiveViewer({
         <VideoTile
           key={t.pubSid}
           tile={t}
-          label={t.label}
           isMine={t.isLocal === true}
           onManage={onManage}
         />
       ))}
     </div>
-  );
-}
-
-function VideoTile({
-  tile,
-  label,
-  isMine,
-  onManage,
-}: {
-  tile: Tile;
-  label: string;
-  isMine: boolean;
-  onManage?: (povId: string) => void;
-}) {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    tile.attach(el);
-    return () => {
-      try {
-        tile.detach(el);
-      } catch {}
-    };
-  }, [tile]);
-
-  return (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="py-2">
-        <CardTitle className="text-sm">
-          {label}
-          <span className="text-muted-foreground">
-            {tile.isLocal ? " (You)" : ""}
-          </span>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="p-0">
-        <video
-          ref={ref}
-          autoPlay
-          playsInline
-          muted={tile.isLocal === true}
-          className="aspect-video w-full object-cover"
-        />
-      </CardContent>
-
-      {isMine && onManage && (
-        <div className="absolute bottom-2 right-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onManage?.(tile.participantIdentity)}
-          >
-            Manage
-          </Button>
-        </div>
-      )}
-    </Card>
   );
 }

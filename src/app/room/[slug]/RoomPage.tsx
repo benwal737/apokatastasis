@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Room, Pov } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import PublisherDialog from "./PublisherDialog";
-import ActiveViewer from "./ActiveViewer";
+import ViewPanel from "./ViewPanel";
 import { createBrowserPov } from "@/livekit/createBrowserPov";
 import {
   Dialog,
@@ -108,7 +108,7 @@ export default function RoomPage({
           )}
         </header>
 
-        <ActiveViewer
+        <ViewPanel
           povs={roomState.povs}
           myPovId={
             pubToken ? roomState.povs[roomState.povs.length - 1]?.id : undefined
