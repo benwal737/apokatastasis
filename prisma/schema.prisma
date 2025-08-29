@@ -21,16 +21,15 @@ model User {
 }
 
 model Room {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  isLive    Boolean  @default(false)
-  hostId    String
-  host      User     @relation(fields: [hostId], references: [id])
-  createdAt DateTime @default(now())
-
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  isLive      Boolean     @default(false)
+  hostId      String
+  host        User        @relation(fields: [hostId], references: [id])
+  createdAt   DateTime    @default(now())
   povs        Pov[]
-  joinCode    String      @unique @default(cuid())
+  joinCode    String      @default(cuid())
   chatEnabled Boolean     @default(true)
   messages    Message[]
   egress      RoomEgress?

@@ -47,7 +47,7 @@ export default function VideoTile({
   return (
     <Card className="relative overflow-hidden">
       <CardHeader className="py-2">
-        <CardTitle className="text-sm">
+        <CardTitle className="text-md">
           {tile.label}
           <span className="text-muted-foreground">
             {tile.isLocal ? " (You)" : ""}

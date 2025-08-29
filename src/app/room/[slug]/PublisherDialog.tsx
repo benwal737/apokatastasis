@@ -30,7 +30,7 @@ export default function PublisherDialog({
   onOpenChange,
   wsUrl,
   token,
-  title = "Go Live (Browser)",
+  title = "You're live!",
   onStarted,
   onStopped,
   stopOnUnmount = false,
@@ -63,9 +63,15 @@ export default function PublisherDialog({
           await room.connect(wsUrl, token);
         }
 
-        await room.localParticipant.setMetadata(
-          JSON.stringify({ povLabel: label })
-        );
+        room.once(RoomEvent.Connected, async () => {
+          try {
+            await room.localParticipant.setMetadata(
+              JSON.stringify({ povLabel: label })
+            );
+          } catch (err) {
+            console.error("metadata update failed", err);
+          }
+        });
 
         await room.localParticipant.setCameraEnabled(true);
         await room.localParticipant.setMicrophoneEnabled(true);
@@ -159,8 +165,8 @@ export default function PublisherDialog({
     try {
       for (const pub of r.localParticipant.trackPublications.values()) {
         if (pub.track) {
-          await r.localParticipant.unpublishTrack(pub.track);
           pub.track.stop();
+          await r.localParticipant.unpublishTrack(pub.track);
         }
       }
     } catch (e) {
@@ -210,13 +216,13 @@ export default function PublisherDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        {status && (
+        {/* {status && (
           <div className="mx-5 mt-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
             {status}
           </div>
-        )}
+        )} */}
 
-        <div className="relative aspect-video w-full bg-black">
+        <div className="relative aspect-video w-full">
           <video
             ref={videoRef}
             autoPlay

@@ -17,6 +17,14 @@ export async function POST(req: NextRequest) {
       });
     } else if (eventType === "user.updated") {
       console.log("User updated:", evt.data.id);
+      const user = await prisma.user.findUnique({
+        where: {
+          externalUserId: evt.data.id!,
+        },
+      });
+      if (!user) {
+        return;
+      }
       await prisma.user.update({
         where: {
           externalUserId: evt.data.id!,
@@ -28,6 +36,14 @@ export async function POST(req: NextRequest) {
       });
     } else if (eventType === "user.deleted") {
       console.log("User deleted:", evt.data.id);
+      const user = await prisma.user.findUnique({
+        where: {
+          externalUserId: evt.data.id!,
+        },
+      });
+      if (!user) {
+        return;
+      }
       await prisma.user.delete({
         where: {
           externalUserId: evt.data.id!,

@@ -18,15 +18,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { SignedIn } from "@clerk/nextjs";
 import { RoomProvider } from "@/context/RoomContext";
+import { verifyJoinCode } from "../actions";
+import { toast } from "sonner";
 
 export default function RoomPage({
   room: initialRoom,
   viewerToken,
   wsUrl,
+  userId,
 }: {
   room: Room & { povs: Pov[] };
   viewerToken: string;
   wsUrl: string;
+  userId: string | null;
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [roomState, setRoomState] = useState(initialRoom);
@@ -35,20 +39,36 @@ export default function RoomPage({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [roomToken, setRoomToken] = useState(viewerToken);
-  const [myPovId, setMyPovId] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isHost, setIsHost] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    setRoomState(initialRoom);
+    console.log("userId", userId);
+    console.log("hostId", roomState.hostId);
+    setIsHost(userId === roomState.hostId);
     return () => {
       setIsMounted(false);
     };
-  }, []);
+  }, [roomState.hostId, userId, initialRoom]);
 
   const goLive = useCallback(
     async (title: string) => {
       if (!isMounted) return;
+      setLoading(true);
       try {
+        console.log("join code", joinCode);
+        const valid = await verifyJoinCode(joinCode, roomState.id);
+        console.log("valid", valid);
+        if (!valid) {
+          setJoinCodeError("Invalid join code");
+          return;
+        }
+        setJoinCodeError(null);
         setDialogOpen(false);
         const { token, pov } = await createBrowserPov(roomState.id, title);
         setRoomToken(token);
@@ -58,13 +78,22 @@ export default function RoomPage({
           ...prev,
           povs: [...prev.povs, pov],
         }));
-        setMyPovId(pov.id);
       } catch (error) {
         console.error("Failed to go live:", error);
+      } finally {
+        setLoading(false);
       }
     },
-    [isMounted, roomState.id]
+    [isMounted, roomState.id, joinCode, roomState.povs]
   );
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    setLoading(false);
+    setJoinCodeError(null);
+    setLabel("");
+    setJoinCode("");
+  };
 
   if (!isMounted) {
     return (
@@ -81,31 +110,58 @@ export default function RoomPage({
           <div>
             <h1 className="text-2xl font-bold">{roomState.name}</h1>
           </div>
-          {!isLive && (
-            <SignedIn>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>Go Live</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Go Live</DialogTitle>
-                  </DialogHeader>
-                  <Input
-                    placeholder="Title"
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                  />
-                  <Button onClick={() => goLive(label)}>Go Live</Button>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button>Close</Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </SignedIn>
-          )}
+          <div className="flex items-center gap-2">
+            {isHost && (
+              <Button
+                onClick={() => {
+                  const code = roomState.joinCode;
+                  if (!code) {
+                    toast.error("No join code available");
+                    return;
+                  }
+                  navigator.clipboard.writeText(code);
+                  toast.success("Join code copied to clipboard");
+                }}
+              >
+                Copy Join Code
+              </Button>
+            )}
+            {!isLive && (
+              <SignedIn>
+                <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+                  <DialogTrigger asChild>
+                    <Button>Go Live</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Go Live</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                      placeholder="Join Code"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                    />
+                    {joinCodeError && (
+                      <p className="text-destructive">{joinCodeError}</p>
+                    )}
+                    <Input
+                      placeholder="Stream Title"
+                      value={label}
+                      onChange={(e) => setLabel(e.target.value)}
+                    />
+                    <DialogFooter>
+                      <Button
+                        onClick={() => goLive(label)}
+                        disabled={!joinCode || !label || loading}
+                      >
+                        Go Live
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </SignedIn>
+            )}
+          </div>
         </header>
 
         <ViewPanel
