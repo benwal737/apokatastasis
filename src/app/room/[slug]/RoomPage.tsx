@@ -12,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,12 @@ import { SignedIn } from "@clerk/nextjs";
 import { RoomProvider } from "@/context/RoomContext";
 import { verifyJoinCode } from "../actions";
 import { toast } from "sonner";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@radix-ui/react-hover-card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RoomPage({
   room: initialRoom,
@@ -151,18 +156,58 @@ export default function RoomPage({
                       onChange={(e) => setLabel(e.target.value)}
                     />
                     <DialogFooter>
-                      <Button
-                        onClick={() => goLive(label)}
-                        disabled={
-                          !joinCode ||
-                          !label ||
-                          loading ||
-                          joinCode.trim().length === 0 ||
-                          label.trim().length === 0
-                        }
-                      >
-                        Go Live
-                      </Button>
+                      <HoverCard openDelay={200} closeDelay={200}>
+                        <HoverCardTrigger>
+                          <Button
+                            onClick={() => goLive(label)}
+                            disabled={
+                              !joinCode ||
+                              !label ||
+                              loading ||
+                              joinCode.trim().length === 0 ||
+                              label.trim().length === 0
+                            }
+                          >
+                            Go Live (Browser)
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80 mt-2">
+                          <Card>
+                            <CardContent>
+                              <p className="text-sm">
+                                Use WebRTC to go live through your browser using
+                                your device's camera and microphone
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </HoverCardContent>
+                      </HoverCard>
+                      <HoverCard openDelay={200} closeDelay={200}>
+                        <HoverCardTrigger>
+                          <Button
+                            onClick={() => {}}
+                            disabled={
+                              !joinCode ||
+                              !label ||
+                              loading ||
+                              joinCode.trim().length === 0 ||
+                              label.trim().length === 0
+                            }
+                          >
+                            Go Live (RTMP)
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80 mt-2">
+                          <Card>
+                            <CardContent>
+                              <p className="text-sm">
+                                Use RTMP to go live through an external encoder
+                                or streaming software (e.g. OBS Studio)
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </HoverCardContent>
+                      </HoverCard>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
