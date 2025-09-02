@@ -61,6 +61,25 @@ export default function RoomPage({
     };
   }, [roomState.hostId, userId, initialRoom]);
 
+  const handleRTMP = useCallback(async () => {
+    if (!isMounted) return;
+    setLoading(true);
+    try {
+      console.log("join code", joinCode);
+      const valid = await verifyJoinCode(joinCode, roomState.id);
+      console.log("valid", valid);
+      if (!valid) {
+        setJoinCodeError("Invalid join code");
+        return;
+      }
+      toast.error("RTMP not implemented yet...");
+    } catch (error) {
+      console.error("Failed to go live:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isMounted, roomState.id, joinCode, roomState.povs]);
+
   const goLive = useCallback(
     async (title: string) => {
       if (!isMounted) return;
@@ -159,6 +178,7 @@ export default function RoomPage({
                       <HoverCard openDelay={200} closeDelay={200}>
                         <HoverCardTrigger>
                           <Button
+                            className="w-full"
                             onClick={() => goLive(label)}
                             disabled={
                               !joinCode ||
@@ -185,7 +205,8 @@ export default function RoomPage({
                       <HoverCard openDelay={200} closeDelay={200}>
                         <HoverCardTrigger>
                           <Button
-                            onClick={() => {}}
+                            className="w-full"
+                            onClick={() => handleRTMP()}
                             disabled={
                               !joinCode ||
                               !label ||
