@@ -228,17 +228,16 @@ export default function PublisherDialog({
       const oldTrack = camPub?.track;
 
       if (oldTrack) {
-        await oldTrack.replaceTrack(newTrack, true);
-
-        if (room) await room.localParticipant.setCameraEnabled(true);
-
-        if (videoRef.current && camPub.track) {
-          camPub.track.attach(videoRef.current);
+        const newLocalTrack = await oldTrack.replaceTrack(newTrack, true);
+        if (videoRef.current && newLocalTrack) {
+          newLocalTrack.attach(videoRef.current);
         }
+        if (room) await room.localParticipant.setCameraEnabled(true);
       } else {
-        await room?.localParticipant.setCameraEnabled(true, {
-          deviceId: { exact: deviceId },
-        });
+        if (room)
+          await room.localParticipant.setCameraEnabled(true, {
+            deviceId: { exact: deviceId },
+          });
       }
 
       newStream.getTracks().forEach((t) => {
