@@ -7,6 +7,7 @@ export async function getRecommendedRooms() {
   try {
     self = await getSelf();
   } catch (error) {
+    console.error(error);
     return [];
   }
 

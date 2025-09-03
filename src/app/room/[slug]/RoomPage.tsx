@@ -24,7 +24,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@radix-ui/react-hover-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function RoomPage({
   room: initialRoom,
@@ -78,7 +78,7 @@ export default function RoomPage({
     } finally {
       setLoading(false);
     }
-  }, [isMounted, roomState.id, joinCode, roomState.povs]);
+  }, [isMounted, roomState.id, joinCode]);
 
   const goLive = useCallback(
     async (title: string) => {
@@ -108,7 +108,7 @@ export default function RoomPage({
         setLoading(false);
       }
     },
-    [isMounted, roomState.id, joinCode, roomState.povs]
+    [isMounted, roomState.id, joinCode]
   );
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -196,7 +196,7 @@ export default function RoomPage({
                             <CardContent>
                               <p className="text-sm">
                                 Use WebRTC to go live through your browser using
-                                your device's camera and microphone
+                                your device&apos;s camera and microphone
                               </p>
                             </CardContent>
                           </Card>
@@ -242,7 +242,7 @@ export default function RoomPage({
           myPovId={
             pubToken ? roomState.povs[roomState.povs.length - 1]?.id : undefined
           }
-          onManage={(povId) => {
+          onManage={() => {
             setPubOpen(true);
           }}
         />

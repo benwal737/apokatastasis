@@ -43,8 +43,6 @@ export default function PublisherDialog({
   const roomRef = useRef(room);
   roomRef.current = room;
 
-  const [connecting, setConnecting] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
 
@@ -53,11 +51,7 @@ export default function PublisherDialog({
     if (!open || !room) return;
     if (startedRef.current) return;
 
-    let mounted = true;
     (async () => {
-      setConnecting(true);
-      setStatus(null);
-
       try {
         if (token) {
           await room.connect(wsUrl, token);
@@ -116,28 +110,15 @@ export default function PublisherDialog({
         room.on(RoomEvent.TrackMuted, syncState);
         room.on(RoomEvent.TrackUnmuted, syncState);
 
-        room.on(RoomEvent.Reconnecting, () => setStatus("Reconnecting…"));
-        room.on(RoomEvent.Reconnected, () => setStatus(null));
-        room.on(RoomEvent.Disconnected, (reason) =>
-          setStatus(`Disconnected: ${reason}`)
-        );
-
         syncState();
         startedRef.current = true;
         onStarted?.();
-      } catch (e: any) {
+      } catch (e) {
         console.error("publisher start failed:", e);
-        setStatus(e?.message ?? "Failed to publish");
         onOpenChange(false);
-      } finally {
-        if (mounted) setConnecting(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [open, room, token, wsUrl, label]);
+  }, [open, room, token, wsUrl, label, onOpenChange, onStarted]);
 
   // reattach video/audio when reopening
   useEffect(() => {
@@ -156,7 +137,7 @@ export default function PublisherDialog({
         micPub.track.attach(audioRef.current);
     }, 100);
     return () => clearTimeout(timer);
-  }, [open, room]);
+  }, [open, room, onOpenChange, onStarted]);
 
   // stop publishing
   const stopAndClose = async () => {

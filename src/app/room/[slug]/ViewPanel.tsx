@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   RoomEvent,
   RemoteTrackPublication,
@@ -8,12 +8,11 @@ import {
   RemoteParticipant,
   LocalTrackPublication,
   Track,
+  LocalParticipant,
 } from "livekit-client";
 import { useRoom } from "@/context/RoomContext";
 import VideoTile from "./VideoTile";
 import { Tile } from "./VideoTile";
-
-type PovInfo = { id: string; label: string };
 
 function getParticipantLabel(
   participant: RemoteParticipant | { identity: string; metadata?: string }
@@ -33,22 +32,12 @@ function getParticipantLabel(
 }
 
 export default function ViewPanel({
-  povs,
-  myPovId,
   onManage,
 }: {
-  povs: PovInfo[];
-  myPovId?: string;
   onManage?: (povId: string) => void;
 }) {
   const { room } = useRoom();
   const [tiles, setTiles] = useState<Tile[]>([]);
-
-  const labelByIdentity = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const p of povs) m.set(p.id, p.label);
-    return m;
-  }, [povs]);
 
   const upsertTile = useCallback((nextTile: Tile) => {
     setTiles((prev) => {
@@ -124,7 +113,7 @@ export default function ViewPanel({
 
     const handleMetadataChanged = (
       metadata: string | undefined,
-      participant: any
+      participant: RemoteParticipant | LocalParticipant
     ) => {
       setTiles((prev) =>
         prev.map((tile) => {

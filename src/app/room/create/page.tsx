@@ -26,7 +26,7 @@ const formSchema = z.object({
   chatEnabled: z.boolean().optional(),
 });
 
-const page = () => {
+const Page = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -91,7 +91,10 @@ const page = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={form.watch("name") === "" || isPending}>
+              <Button
+                type="submit"
+                disabled={form.watch("name") === "" || isPending}
+              >
                 Create
               </Button>
             </form>
@@ -102,4 +105,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
