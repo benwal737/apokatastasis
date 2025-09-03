@@ -11,6 +11,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRoom } from "@/context/RoomContext";
 
 type Props = {
@@ -45,6 +52,8 @@ export default function PublisherDialog({
 
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
   // --- start publishing when dialog opens
   useEffect(() => {
@@ -70,6 +79,18 @@ export default function PublisherDialog({
         await room.localParticipant.setCameraEnabled(true);
         await room.localParticipant.setMicrophoneEnabled(true);
 
+        // capture initial camera deviceId
+        const camPub = room.localParticipant.getTrackPublication(
+          Track.Source.Camera
+        );
+        const track = camPub?.track?.mediaStreamTrack;
+        if (track) {
+          const settings = track.getSettings();
+          if (settings.deviceId) {
+            setCurrentDeviceId(settings.deviceId);
+          }
+        }
+
         const syncState = () => {
           const camPub = room.localParticipant.getTrackPublication(
             Track.Source.Camera
@@ -82,9 +103,6 @@ export default function PublisherDialog({
         };
 
         // initial attach
-        const camPub = room.localParticipant.getTrackPublication(
-          Track.Source.Camera
-        );
         if (camPub?.track && videoRef.current)
           camPub.track.attach(videoRef.current);
 
@@ -111,6 +129,13 @@ export default function PublisherDialog({
         room.on(RoomEvent.TrackUnmuted, syncState);
 
         syncState();
+
+        // fetch devices
+        const devices = (
+          await navigator.mediaDevices.enumerateDevices()
+        ).filter((d) => d.kind === "videoinput");
+        setVideoDevices(devices);
+
         startedRef.current = true;
         onStarted?.();
       } catch (e) {
@@ -137,7 +162,7 @@ export default function PublisherDialog({
         micPub.track.attach(audioRef.current);
     }, 100);
     return () => clearTimeout(timer);
-  }, [open, room, onOpenChange, onStarted]);
+  }, [open, room]);
 
   // stop publishing
   const stopAndClose = async () => {
@@ -190,18 +215,64 @@ export default function PublisherDialog({
     }
   };
 
+  const flipCamera = async () => {
+    try {
+      if (videoDevices.length < 2) return;
+
+      const currentIndex = videoDevices.findIndex(
+        (d) => d.deviceId === currentDeviceId
+      );
+      const nextDevice =
+        videoDevices[
+          (currentIndex + 1 + videoDevices.length) % videoDevices.length
+        ];
+
+      const cameraTrack = room?.localParticipant.trackPublications.get(
+        Track.Source.Camera
+      )?.track;
+
+      if (cameraTrack) {
+        await cameraTrack.restartTrack({
+          deviceId: { exact: nextDevice.deviceId },
+        });
+      } else {
+        await room?.localParticipant.setCameraEnabled(true, {
+          deviceId: { exact: nextDevice.deviceId },
+        });
+      }
+
+      setCurrentDeviceId(nextDevice.deviceId);
+    } catch (err) {
+      console.error("flip camera failed", err);
+    }
+  };
+
+  const selectCamera = async (deviceId: string) => {
+    try {
+      const cameraTrack = room?.localParticipant.trackPublications.get(
+        Track.Source.Camera
+      )?.track;
+
+      if (cameraTrack) {
+        await cameraTrack.restartTrack({ deviceId: { exact: deviceId } });
+      } else {
+        await room?.localParticipant.setCameraEnabled(true, {
+          deviceId: { exact: deviceId },
+        });
+      }
+
+      setCurrentDeviceId(deviceId);
+    } catch (err) {
+      console.error("select camera failed", err);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[600px] overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-
-        {/* {status && (
-          <div className="mx-5 mt-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
-            {status}
-          </div>
-        )} */}
 
         <div className="relative aspect-video w-full p-5">
           <video
@@ -224,6 +295,31 @@ export default function PublisherDialog({
           <Button variant={micOn ? "default" : "secondary"} onClick={toggleMic}>
             {micOn ? "Mute Mic" : "Unmute Mic"}
           </Button>
+
+          {/* Camera controls */}
+          {videoDevices.length === 2 && (
+            <Button variant="default" onClick={flipCamera}>
+              Flip Camera
+            </Button>
+          )}
+          {videoDevices.length > 2 && (
+            <Select
+              onValueChange={selectCamera}
+              defaultValue={currentDeviceId || undefined}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Select Camera" />
+              </SelectTrigger>
+              <SelectContent>
+                {videoDevices.map((d) => (
+                  <SelectItem key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Camera ${d.deviceId}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <Separator
             orientation="vertical"
             className="hidden md:block mx-2 h-6"
