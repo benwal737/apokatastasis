@@ -45,8 +45,8 @@ export default function VideoTile({
   }, [tile]);
 
   return (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="py-2">
+    <Card className="relative overflow-hidden pt-2">
+      <CardHeader className="h-2 px-4">
         <CardTitle className="text-md">
           {tile.label}
           <span className="text-muted-foreground">

@@ -211,7 +211,7 @@ export default function PublisherDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0">
+      <DialogContent className="w-[600px] overflow-hidden p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -222,7 +222,7 @@ export default function PublisherDialog({
           </div>
         )} */}
 
-        <div className="relative aspect-video w-full">
+        <div className="relative aspect-video w-full p-5">
           <video
             ref={videoRef}
             autoPlay
@@ -243,7 +243,10 @@ export default function PublisherDialog({
           <Button variant={micOn ? "default" : "secondary"} onClick={toggleMic}>
             {micOn ? "Mute Mic" : "Unmute Mic"}
           </Button>
-          <Separator orientation="vertical" className="mx-2 h-6" />
+          <Separator
+            orientation="vertical"
+            className="hidden md:block mx-2 h-6"
+          />
           <Button variant="destructive" onClick={stopAndClose}>
             Stop
           </Button>

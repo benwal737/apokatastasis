@@ -4,7 +4,7 @@ import prisma from "./prisma";
 export const getSelf = async () => {
   const self = await currentUser();
   if (!self || !self.username) {
-    throw new Error("Unauthorized");
+    return null;
   }
   const user = prisma.user.findUnique({
     where: {
