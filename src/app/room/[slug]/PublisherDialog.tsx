@@ -228,11 +228,16 @@ export default function PublisherDialog({
       const oldTrack = camPub?.track;
 
       if (oldTrack) {
+        const oldMediaStreamTrack = oldTrack.mediaStreamTrack;
+
         await oldTrack.replaceTrack(newTrack, true);
-        oldTrack.mediaStreamTrack.stop();
 
         if (videoRef.current && camPub.track) {
           camPub.track.attach(videoRef.current);
+        }
+
+        if (oldMediaStreamTrack && oldMediaStreamTrack !== newTrack) {
+          oldMediaStreamTrack.stop();
         }
       } else {
         await room?.localParticipant.setCameraEnabled(true, {
@@ -249,7 +254,6 @@ export default function PublisherDialog({
       console.error("select camera failed", err);
     }
   };
-
 
   const flipCamera = async () => {
     try {
