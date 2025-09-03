@@ -215,6 +215,42 @@ export default function PublisherDialog({
     }
   };
 
+  const selectCamera = async (deviceId: string) => {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } },
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+
+      const camPub = room?.localParticipant.getTrackPublication(
+        Track.Source.Camera
+      );
+      const oldTrack = camPub?.track;
+
+      if (oldTrack) {
+        await oldTrack.replaceTrack(newTrack, true);
+        oldTrack.mediaStreamTrack.stop();
+
+        if (videoRef.current && camPub.track) {
+          camPub.track.attach(videoRef.current);
+        }
+      } else {
+        await room?.localParticipant.setCameraEnabled(true, {
+          deviceId: { exact: deviceId },
+        });
+      }
+
+      newStream.getTracks().forEach((t) => {
+        if (t !== newTrack) t.stop();
+      });
+
+      setCurrentDeviceId(deviceId);
+    } catch (err) {
+      console.error("select camera failed", err);
+    }
+  };
+
+
   const flipCamera = async () => {
     try {
       if (videoDevices.length < 2) return;
@@ -227,43 +263,9 @@ export default function PublisherDialog({
           (currentIndex + 1 + videoDevices.length) % videoDevices.length
         ];
 
-      const cameraTrack = room?.localParticipant.trackPublications.get(
-        Track.Source.Camera
-      )?.track;
-
-      if (cameraTrack) {
-        await cameraTrack.restartTrack({
-          deviceId: nextDevice.deviceId,
-        });
-      } else {
-        await room?.localParticipant.setCameraEnabled(true, {
-          deviceId: nextDevice.deviceId,
-        });
-      }
-
-      setCurrentDeviceId(nextDevice.deviceId);
+      await selectCamera(nextDevice.deviceId);
     } catch (err) {
       console.error("flip camera failed", err);
-    }
-  };
-
-  const selectCamera = async (deviceId: string) => {
-    try {
-      const cameraTrack = room?.localParticipant.trackPublications.get(
-        Track.Source.Camera
-      )?.track;
-
-      if (cameraTrack) {
-        await cameraTrack.restartTrack({ deviceId });
-      } else {
-        await room?.localParticipant.setCameraEnabled(true, {
-          deviceId,
-        });
-      }
-
-      setCurrentDeviceId(deviceId);
-    } catch (err) {
-      console.error("select camera failed", err);
     }
   };
 
@@ -305,7 +307,7 @@ export default function PublisherDialog({
           {videoDevices.length > 2 && (
             <Select
               onValueChange={selectCamera}
-              defaultValue={currentDeviceId || undefined}
+              value={currentDeviceId || undefined}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Camera" />
