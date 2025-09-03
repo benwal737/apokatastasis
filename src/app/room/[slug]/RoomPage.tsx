@@ -53,8 +53,6 @@ export default function RoomPage({
   useEffect(() => {
     setIsMounted(true);
     setRoomState(initialRoom);
-    console.log("userId", userId);
-    console.log("hostId", roomState.hostId);
     setIsHost(userId === roomState.hostId);
     return () => {
       setIsMounted(false);
@@ -65,9 +63,7 @@ export default function RoomPage({
     if (!isMounted) return;
     setLoading(true);
     try {
-      console.log("join code", joinCode);
       const valid = await verifyJoinCode(joinCode, roomState.id);
-      console.log("valid", valid);
       if (!valid) {
         setJoinCodeError("Invalid join code");
         return;
@@ -85,9 +81,7 @@ export default function RoomPage({
       if (!isMounted) return;
       setLoading(true);
       try {
-        console.log("join code", joinCode);
         const valid = await verifyJoinCode(joinCode, roomState.id);
-        console.log("valid", valid);
         if (!valid) {
           setJoinCodeError("Invalid join code");
           return;
@@ -238,10 +232,6 @@ export default function RoomPage({
         </header>
 
         <ViewPanel
-          povs={roomState.povs}
-          myPovId={
-            pubToken ? roomState.povs[roomState.povs.length - 1]?.id : undefined
-          }
           onManage={() => {
             setPubOpen(true);
           }}
@@ -256,11 +246,9 @@ export default function RoomPage({
             }
           }}
           onStarted={() => {
-            console.log("Stream started");
             setIsLive(true);
           }}
           onStopped={() => {
-            console.log("Stream stopped");
             setIsLive(false);
             setPubToken("");
           }}
