@@ -233,11 +233,11 @@ export default function PublisherDialog({
 
       if (cameraTrack) {
         await cameraTrack.restartTrack({
-          deviceId: { exact: nextDevice.deviceId },
+          deviceId: nextDevice.deviceId,
         });
       } else {
         await room?.localParticipant.setCameraEnabled(true, {
-          deviceId: { exact: nextDevice.deviceId },
+          deviceId: nextDevice.deviceId,
         });
       }
 
@@ -254,10 +254,10 @@ export default function PublisherDialog({
       )?.track;
 
       if (cameraTrack) {
-        await cameraTrack.restartTrack({ deviceId: { exact: deviceId } });
+        await cameraTrack.restartTrack({ deviceId });
       } else {
         await room?.localParticipant.setCameraEnabled(true, {
-          deviceId: { exact: deviceId },
+          deviceId,
         });
       }
 
@@ -307,7 +307,7 @@ export default function PublisherDialog({
               onValueChange={selectCamera}
               defaultValue={currentDeviceId || undefined}
             >
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Camera" />
               </SelectTrigger>
               <SelectContent>
