@@ -76,7 +76,6 @@ const RoomManager = ({
   roomManagerOpen,
   setRoomManagerOpen,
   username,
-  userId,
   onStreamEnded,
   roomId,
   roomName,
@@ -84,7 +83,6 @@ const RoomManager = ({
   roomManagerOpen: boolean;
   setRoomManagerOpen: (open: boolean) => void;
   username: string | null;
-  userId: string | null;
   onStreamEnded?: () => void;
   roomId: string;
   roomName: string;
@@ -93,8 +91,12 @@ const RoomManager = ({
   const { room } = useRoom();
   const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [endedParticipants, setEndedParticipants] = useState<Set<string>>(new Set());
-  const [endingParticipants, setEndingParticipants] = useState<Set<string>>(new Set());
+  const [endedParticipants, setEndedParticipants] = useState<Set<string>>(
+    new Set()
+  );
+  const [endingParticipants, setEndingParticipants] = useState<Set<string>>(
+    new Set()
+  );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -108,20 +110,16 @@ const RoomManager = ({
       ...p.videoTrackPublications.values(),
     ];
 
-    const hasAudio = audioPubs.some(
-      (pub) => {
-        if (!pub.track || pub.isMuted) return false;
-        const track = pub.track.mediaStreamTrack;
-        return track && track.readyState === 'live' && track.enabled;
-      }
-    );
-    const hasVideo = videoPubs.some(
-      (pub) => {
-        if (!pub.track || pub.isMuted) return false;
-        const track = pub.track.mediaStreamTrack;
-        return track && track.readyState === 'live' && track.enabled;
-      }
-    );
+    const hasAudio = audioPubs.some((pub) => {
+      if (!pub.track || pub.isMuted) return false;
+      const track = pub.track.mediaStreamTrack;
+      return track && track.readyState === "live" && track.enabled;
+    });
+    const hasVideo = videoPubs.some((pub) => {
+      if (!pub.track || pub.isMuted) return false;
+      const track = pub.track.mediaStreamTrack;
+      return track && track.readyState === "live" && track.enabled;
+    });
 
     return hasAudio || hasVideo;
   };
@@ -174,6 +172,20 @@ const RoomManager = ({
     setIsLoading(false);
   }, [room, username]);
 
+  const stopLocalTracks = useCallback(async () => {
+    if (!room) return;
+    try {
+      for (const pub of room.localParticipant.trackPublications.values()) {
+        if (pub.track) {
+          pub.track.stop();
+          await room.localParticipant.unpublishTrack(pub.track);
+        }
+      }
+    } catch (e) {
+      console.error("Error stopping local tracks:", e);
+    }
+  }, [room]);
+
   // Setup listeners
   useEffect(() => {
     if (!room) return;
@@ -192,14 +204,18 @@ const RoomManager = ({
       .on("trackMuted", recompute)
       .on("trackUnmuted", recompute);
 
-    const attachSpeaking = (p: any) => p.on?.("isSpeakingChanged", recompute);
-    const detachSpeaking = (p: any) => p.off?.("isSpeakingChanged", recompute);
+    const attachSpeaking = (p: LocalParticipant | RemoteParticipant) =>
+      p.on?.("isSpeakingChanged", recompute);
+    const detachSpeaking = (p: LocalParticipant | RemoteParticipant) =>
+      p.off?.("isSpeakingChanged", recompute);
 
     room.remoteParticipants.forEach(attachSpeaking);
     attachSpeaking(room.localParticipant);
 
-    const onJoined = (p: any) => attachSpeaking(p);
-    const onLeft = (p: any) => detachSpeaking(p);
+    const onJoined = (p: LocalParticipant | RemoteParticipant) =>
+      attachSpeaking(p);
+    const onLeft = (p: LocalParticipant | RemoteParticipant) =>
+      detachSpeaking(p);
 
     room.on("participantConnected", onJoined);
     room.on("participantDisconnected", onLeft);
@@ -210,8 +226,10 @@ const RoomManager = ({
       try {
         const data = JSON.parse(new TextDecoder().decode(payload));
         if (data.type === "end-stream") {
-          const isTargetingMe = data.target === room.localParticipant.identity || data.target === "*";
-          
+          const isTargetingMe =
+            data.target === room.localParticipant.identity ||
+            data.target === "*";
+
           if (isTargetingMe) {
             if (data.target === "*") {
               setEndedParticipants(new Set());
@@ -221,7 +239,7 @@ const RoomManager = ({
           } else if (data.target !== "*") {
             toast.info(`${data.target}'s stream has ended.`);
           }
-          
+
           if (data.target === "*" || isTargetingMe) {
             if (updateTimeout) clearTimeout(updateTimeout);
             updateTimeout = setTimeout(() => {
@@ -238,7 +256,7 @@ const RoomManager = ({
 
     return () => {
       if (updateTimeout) clearTimeout(updateTimeout);
-      
+
       room
         .off("participantConnected", recompute)
         .off("participantDisconnected", recompute)
@@ -257,61 +275,52 @@ const RoomManager = ({
       room.off("participantConnected", onJoined);
       room.off("participantDisconnected", onLeft);
     };
-  }, [room, updateParticipants]);
-
-  const stopLocalTracks = async () => {
-    if (!room) return;
-    try {
-      for (const pub of room.localParticipant.trackPublications.values()) {
-        if (pub.track) {
-          pub.track.stop();
-          await room.localParticipant.unpublishTrack(pub.track);
-        }
-      }
-    } catch (e) {
-      console.error("Error stopping local tracks:", e);
-    }
-  };
+  }, [room, updateParticipants, onStreamEnded, stopLocalTracks]);
 
   const broadcastEndEvent = (participantId: string) => {
     if (!room) return;
     room.localParticipant.publishData(
-      new TextEncoder().encode(JSON.stringify({ type: "end-stream", target: participantId })),
+      new TextEncoder().encode(
+        JSON.stringify({ type: "end-stream", target: participantId })
+      ),
       { reliable: true }
     );
   };
 
   const handleEndStream = async (participantId: string) => {
     if (!room) return;
-    
-    if (endingParticipants.has(participantId) || endedParticipants.has(participantId)) {
+
+    if (
+      endingParticipants.has(participantId) ||
+      endedParticipants.has(participantId)
+    ) {
       return;
     }
-    
-    setEndingParticipants(prev => new Set(prev).add(participantId));
-    
+
+    setEndingParticipants((prev) => new Set(prev).add(participantId));
+
     if (room.localParticipant.identity === participantId) {
       await stopLocalTracks();
     }
-    
-    setEndedParticipants(prev => new Set(prev).add(participantId));
-    setEndingParticipants(prev => {
+
+    setEndedParticipants((prev) => new Set(prev).add(participantId));
+    setEndingParticipants((prev) => {
       const newSet = new Set(prev);
       newSet.delete(participantId);
       return newSet;
     });
-    
+
     broadcastEndEvent(participantId);
-    
+
     updateParticipants();
   };
 
   const handleEndAllStreams = async () => {
     if (!room) return;
-    
+
     setEndedParticipants(new Set());
     setEndingParticipants(new Set());
-    
+
     await stopLocalTracks();
     broadcastEndEvent("*");
     toast.info("All streams have been ended.");
@@ -353,57 +362,64 @@ const RoomManager = ({
           ) : (
             <div className="space-y-4">
               {participants
-                .filter(p => !endedParticipants.has(p.id))
+                .filter((p) => !endedParticipants.has(p.id))
                 .map((participant) => (
-                <div
-                  key={participant.id}
-                  className={`flex items-center justify-between p-3 rounded-lg ${
-                    participant.isSpeaking ? "bg-accent/50" : "bg-background"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback>
-                        {getInitials(
-                          (
-                            participant.name ||
-                            participant.username ||
-                            "U"
-                          ).toString()
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">
-                        {participant.name || "Anonymous"}
-                        {participant.isLocal && (
-                          <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                            You
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        @{participant.username}
+                  <div
+                    key={participant.id}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      participant.isSpeaking ? "bg-accent/50" : "bg-background"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>
+                          {getInitials(
+                            (
+                              participant.name ||
+                              participant.username ||
+                              "U"
+                            ).toString()
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">
+                          {participant.name || "Anonymous"}
+                          {participant.isLocal && (
+                            <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          @{participant.username}
+                        </div>
                       </div>
                     </div>
+                    {!participant.isLocal && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleEndStream(participant.id)}
+                        disabled={
+                          endingParticipants.has(participant.id) ||
+                          endedParticipants.has(participant.id)
+                        }
+                      >
+                        {endingParticipants.has(participant.id)
+                          ? "Ending..."
+                          : endedParticipants.has(participant.id)
+                          ? "Ended"
+                          : "End Stream"}
+                      </Button>
+                    )}
                   </div>
-                  {!participant.isLocal && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleEndStream(participant.id)}
-                      disabled={endingParticipants.has(participant.id) || endedParticipants.has(participant.id)}
-                    >
-                      {endingParticipants.has(participant.id) ? "Ending..." : 
-                       endedParticipants.has(participant.id) ? "Ended" : "End Stream"}
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
           )}
 
-          {participants.filter(p => !endedParticipants.has(p.id)).length > 1 && (
+          {participants.filter((p) => !endedParticipants.has(p.id)).length >
+            1 && (
             <>
               <Separator className="my-4" />
               <div className="flex justify-end">
@@ -422,28 +438,27 @@ const RoomManager = ({
           <div className="flex justify-end">
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive">
-                  Delete Room
-                </Button>
+                <Button variant="destructive">Delete Room</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Delete Room</DialogTitle>
                   <DialogDescription>
-                    Are you sure you want to delete "{roomName}"? This action cannot be undone.
-                    All participants will be redirected to the homepage.
+                    Are you sure you want to delete &quot;{roomName}&quot;? This action
+                    cannot be undone. All participants will be redirected to the
+                    homepage.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setDeleteDialogOpen(false)}
                     disabled={isDeleting}
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     onClick={handleDeleteRoom}
                     disabled={isDeleting}
                   >

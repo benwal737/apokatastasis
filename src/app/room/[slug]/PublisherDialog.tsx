@@ -58,7 +58,7 @@ export default function PublisherDialog({
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 
-  // --- start publishing when dialog opens
+  // start publishing when dialog opens
   useEffect(() => {
     if (!open || !room) return;
     if (startedRef.current) return;
@@ -197,7 +197,8 @@ export default function PublisherDialog({
 
         if (
           data.type === "end-stream" &&
-          (data.target === room.localParticipant.identity || data.target === "*")
+          (data.target === room.localParticipant.identity ||
+            data.target === "*")
         ) {
           // Show appropriate toast
           if (data.target === room.localParticipant.identity) {
@@ -207,7 +208,6 @@ export default function PublisherDialog({
           }
           stopAndClose();
         } else if (data.type === "room-deleted") {
-          // Room has been deleted by the host
           console.log("Room deleted event received in PublisherDialog");
           toast.error("This room has been deleted by the host.");
           stopAndClose();
@@ -222,7 +222,7 @@ export default function PublisherDialog({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room, stopAndClose]);
+  }, [room, stopAndClose, router]);
 
   // Cleanup
   useEffect(() => {
