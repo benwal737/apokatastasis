@@ -25,23 +25,28 @@ import {
   HoverCardTrigger,
 } from "@radix-ui/react-hover-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { Settings } from "lucide-react";
+import RoomManager from "./RoomManager";
 
 export default function RoomPage({
   room: initialRoom,
   viewerToken,
   wsUrl,
   userId,
+  username,
 }: {
   room: Room & { povs: Pov[] };
   viewerToken: string;
   wsUrl: string;
   userId: string | null;
+  username: string | null;
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [roomState, setRoomState] = useState(initialRoom);
   const [pubOpen, setPubOpen] = useState(false);
   const [pubToken, setPubToken] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [publisherDialogOpen, setPublisherDialogOpen] = useState(false);
+  const [roomManagerOpen, setRoomManagerOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [roomToken, setRoomToken] = useState(viewerToken);
   const [isLive, setIsLive] = useState(false);
@@ -58,6 +63,32 @@ export default function RoomPage({
       setIsMounted(false);
     };
   }, [roomState.hostId, userId, initialRoom]);
+
+  // Polling fallback to detect room deletion for viewers who don't receive LiveKit data messages
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const pollRoomExists = async () => {
+      try {
+        const response = await fetch(`/api/room/${roomState.id}/exists`);
+        if (!response.ok && response.status === 404) {
+          console.log("Room no longer exists - redirecting via polling");
+          toast.error("This room has been deleted by the host.");
+          window.location.href = "/";
+        }
+      } catch (error) {
+        console.error("Error checking room existence:", error);
+      }
+    };
+
+    // Poll every 3 seconds to check if room still exists
+    const pollInterval = setInterval(pollRoomExists, 3000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [roomState.id, isMounted]);
+
 
   const handleRTMP = useCallback(async () => {
     if (!isMounted) return;
@@ -87,7 +118,7 @@ export default function RoomPage({
           return;
         }
         setJoinCodeError(null);
-        setDialogOpen(false);
+        setPublisherDialogOpen(false);
         const { token, pov } = await createBrowserPov(roomState.id, title);
         setRoomToken(token);
         setPubToken(token);
@@ -106,7 +137,7 @@ export default function RoomPage({
   );
 
   const handleDialogOpenChange = (open: boolean) => {
-    setDialogOpen(open);
+    setPublisherDialogOpen(open);
     setLoading(false);
     setJoinCodeError(null);
     setLabel("");
@@ -132,6 +163,15 @@ export default function RoomPage({
             {isHost && (
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setRoomManagerOpen(true)}
+              >
+                <Settings className="size-5" />
+              </Button>
+            )}
+            {isHost && (
+              <Button
+                variant="outline"
                 onClick={() => {
                   const code = roomState.joinCode;
                   if (!code) {
@@ -147,7 +187,10 @@ export default function RoomPage({
             )}
             {!isLive && (
               <SignedIn>
-                <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+                <Dialog
+                  open={publisherDialogOpen}
+                  onOpenChange={handleDialogOpenChange}
+                >
                   <DialogTrigger asChild>
                     <Button>Go Live</Button>
                   </DialogTrigger>
@@ -229,6 +272,19 @@ export default function RoomPage({
               </SignedIn>
             )}
           </div>
+          <RoomManager
+            roomManagerOpen={roomManagerOpen}
+            setRoomManagerOpen={setRoomManagerOpen}
+            username={username}
+            userId={userId}
+            roomId={roomState.id}
+            roomName={roomState.name}
+            onStreamEnded={() => {
+              setPubOpen(false);
+              setIsLive(false);
+              setPubToken("");
+            }}
+          />
         </header>
 
         <ViewPanel

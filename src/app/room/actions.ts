@@ -51,26 +51,28 @@ export const createRoom = async (roomInput: RoomInput) => {
 };
 
 export const getRoom = async (slug: string) => {
-  const room = await prisma.room.findUnique({
-    where: {
-      slug,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      isLive: true,
-      hostId: true,
-      joinCode: true,
-      chatEnabled: true,
-      createdAt: true,
-      povs: true,
-    },
-  });
-  if (!room) {
-    throw new Error("Room not found");
+  try {
+    const room = await prisma.room.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isLive: true,
+        hostId: true,
+        joinCode: true,
+        chatEnabled: true,
+        createdAt: true,
+        povs: true,
+      },
+    });
+    return room; // Return room or null
+  } catch (error) {
+    console.error("Error fetching room:", error);
+    return null;
   }
-  return room;
 };
 
 export const getPovInfo = async (povId: string) => {
@@ -111,4 +113,41 @@ export const verifyJoinCode = async (joinCode: string, roomId: string) => {
     return false;
   }
   return room.joinCode === joinCode;
+};
+
+export const deleteRoom = async (roomId: string) => {
+  try {
+    const user = await getSelf();
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      select: { hostId: true, slug: true },
+    });
+
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    if (room.hostId !== user.id) {
+      throw new Error("Unauthorized: Only the host can delete the room");
+    }
+
+    await prisma.$transaction([
+      prisma.pov.deleteMany({
+        where: { roomId: roomId },
+      }),
+      prisma.room.delete({
+        where: { id: roomId },
+      }),
+    ]);
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting room:", error);
+    throw error;
+  }
 };

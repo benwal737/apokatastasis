@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { RoomEvent, Track, LocalTrackPublication } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRoom } from "@/context/RoomContext";
+import { toast } from "sonner";
 
 type Props = {
   open: boolean;
@@ -43,6 +45,7 @@ export default function PublisherDialog({
   stopOnUnmount = false,
   label,
 }: Props) {
+  const router = useRouter();
   const { room } = useRoom();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -164,8 +167,8 @@ export default function PublisherDialog({
     return () => clearTimeout(timer);
   }, [open, room]);
 
-  // stop publishing
-  const stopAndClose = async () => {
+  // Stop publishing
+  const stopAndClose = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
     try {
@@ -181,9 +184,47 @@ export default function PublisherDialog({
     startedRef.current = false;
     onStopped?.();
     onOpenChange(false);
-  };
+  }, [onStopped, onOpenChange]);
 
-  // cleanup
+  // Handle end-stream events
+  useEffect(() => {
+    if (!room) return;
+
+    const handleData = (payload: Uint8Array) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        console.log("PublisherDialog received data:", data);
+
+        if (
+          data.type === "end-stream" &&
+          (data.target === room.localParticipant.identity || data.target === "*")
+        ) {
+          // Show appropriate toast
+          if (data.target === room.localParticipant.identity) {
+            toast.error("Your stream has been ended by the host.");
+          } else if (data.target === "*") {
+            toast.error("All streams have been ended by the host.");
+          }
+          stopAndClose();
+        } else if (data.type === "room-deleted") {
+          // Room has been deleted by the host
+          console.log("Room deleted event received in PublisherDialog");
+          toast.error("This room has been deleted by the host.");
+          stopAndClose();
+          router.push("/");
+        }
+      } catch (err) {
+        console.error("Failed to parse data message", err);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room, stopAndClose]);
+
+  // Cleanup
   useEffect(() => {
     return () => {
       if (!stopOnUnmount) return;

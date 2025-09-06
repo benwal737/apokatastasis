@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   RoomEvent,
   RemoteTrackPublication,
@@ -36,6 +38,7 @@ export default function ViewPanel({
 }: {
   onManage?: (povId: string) => void;
 }) {
+  const router = useRouter();
   const { room } = useRoom();
   const [tiles, setTiles] = useState<Tile[]>([]);
 
@@ -185,6 +188,31 @@ export default function ViewPanel({
         .off(RoomEvent.LocalTrackUnpublished, handleLocalUnpublished);
     };
   }, [room, addRemotePublication, addLocalPublication, removeByPubSid]);
+
+  // Handle room deletion events
+  useEffect(() => {
+    if (!room) return;
+
+    const handleDataReceived = (payload: Uint8Array) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        console.log("ViewPanel received data:", data);
+        
+        if (data.type === "room-deleted") {
+          console.log("Room deleted event received in ViewPanel");
+          toast.error("This room has been deleted by the host.");
+          router.push("/");
+        }
+      } catch (err) {
+        console.error("Failed to parse data message", err);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleDataReceived);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleDataReceived);
+    };
+  }, [room, router]);
 
   if (tiles.length === 0) {
     return (

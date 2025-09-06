@@ -23,6 +23,7 @@ export async function getRoomToken({
       roomJoin: true,
       canSubscribe: true,
       canPublish: false,
+      canPublishData: false, // Viewers can't publish data
     });
   } else {
     at.addGrant({
@@ -30,6 +31,7 @@ export async function getRoomToken({
       roomJoin: true,
       canSubscribe: true,
       canPublish: true,
+      canPublishData: true, // Publishers can send data messages
     });
   }
 
