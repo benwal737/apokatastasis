@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "ts-node --project tsconfig.server.json server.ts",
-    "dev::socket": "NODE_OPTIONS='--loader ts-node/esm --trace-warnings --no-warnings' ts-node server.ts",
     "build": "next build && tsc --project tsconfig.server.json",
     "start": "node dist/server.js",
     "lint": "eslint"
@@ -41,6 +40,7 @@
     "sqids": "^0.3.0",
     "tailwind-merge": "^3.3.1",
     "ts-node": "^10.9.2",
+    "tsc": "^2.0.4",
     "vaul": "^1.1.2",
     "zod": "^4.1.2"
   },
