@@ -276,7 +276,6 @@ export default function RoomPage({
             roomManagerOpen={roomManagerOpen}
             setRoomManagerOpen={setRoomManagerOpen}
             username={username}
-            userId={userId}
             roomId={roomState.id}
             roomName={roomState.name}
             onStreamEnded={() => {
