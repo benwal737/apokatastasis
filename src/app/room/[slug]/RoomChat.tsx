@@ -1,58 +1,63 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { MessageInput } from "@/types";
 import { Message } from "@prisma/client";
+import { socket } from "@/lib/socketClient";
+import { sendMessage } from "../actions";
 
 const RoomChat = ({
   userId,
   roomId,
+  initialMessages,
+  username,
 }: {
   userId: string | null;
   roomId: string;
+  initialMessages: Message[];
+  username: string | null;
 }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      roomId: "1",
-      senderId: userId,
-      content: "Yo",
-      sentAt: new Date(),
-    },
-    {
-      id: "2",
-      roomId: "1",
-      senderId: userId,
-      content: "Whats up",
-      sentAt: new Date(),
-    },
-    {
-      id: "3",
-      roomId: "1",
-      senderId: userId,
-      content: "Test",
-      sentAt: new Date(),
-    },
-  ]);
-
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState("");
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  useEffect(() => {
+    socket.on("connect", () => {
+      socket.emit("join_room", roomId);
+    });
+
+    socket.on("new_message", (message: Message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("new_message");
+      socket.off("connect_error");
+    };
+  }, [roomId]);
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !username || !userId) return;
 
     const messageInput: MessageInput = {
-      senderId: userId || "",
+      senderId: userId,
       roomId: roomId,
       content: newMessage,
+      username: username,
     };
 
     const message: Message = {
       id: Date.now().toString(),
       roomId: roomId,
-      senderId: userId || "",
+      senderId: userId,
+      username: username,
       content: newMessage,
       sentAt: new Date(),
     };
@@ -60,7 +65,12 @@ const RoomChat = ({
     setMessages((prev) => [...prev, message]);
     setNewMessage("");
 
-    console.log("Sending message:", messageInput);
+    try {
+      const message = await sendMessage(messageInput);
+      socket.emit("send_message", roomId, message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -70,8 +80,9 @@ const RoomChat = ({
     }
   };
 
-  const formatTime = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString("en-US", {
+  const formatTime = (timestamp: Date | string) => {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -85,26 +96,19 @@ const RoomChat = ({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {messages.map((message) => {
-          const isOwnMessage = message.senderId === userId;
           return (
             <div
               key={message.id}
               className="w-full px-2 py-1 hover:bg-muted/50 rounded text-sm group"
             >
               <div className="mb-1">
-                <span
-                  className={`font-medium ${
-                    isOwnMessage ? "text-primary" : "text-foreground"
-                  }`}
-                >
-                  {isOwnMessage ? "You" : message.senderId}:
+                <span className="font-bold">
+                  {message.username || "Anonymous"}:
                 </span>{" "}
-                <span className="text-foreground break-words">
-                  {message.content}
-                </span>
+                <span className="break-words font-light">{message.content}</span>
               </div>
               <div className="flex justify-end">
-                <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-xs text-muted-foreground opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   {formatTime(message.sentAt)}
                 </span>
               </div>

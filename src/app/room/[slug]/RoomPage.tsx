@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Room, Pov } from "@prisma/client";
+import { Room, Pov, Message } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import PublisherDialog from "./PublisherDialog";
 import ViewPanel from "./ViewPanel";
@@ -43,7 +43,7 @@ export default function RoomPage({
   userId,
   username,
 }: {
-  room: Room & { povs: Pov[] };
+  room: Room & { povs: Pov[] } & { messages: Message[] };
   viewerToken: string;
   wsUrl: string;
   userId: string | null;
@@ -80,7 +80,6 @@ export default function RoomPage({
       try {
         const response = await fetch(`/api/room/${roomState.id}/exists`);
         if (!response.ok && response.status === 404) {
-          console.log("Room no longer exists - redirecting via polling");
           toast.error("This room has been deleted by the host.");
           window.location.href = "/";
         }
@@ -179,7 +178,12 @@ export default function RoomPage({
                   <SheetHeader className="sr-only">
                     <SheetTitle>Room Chat</SheetTitle>
                   </SheetHeader>
-                  <RoomChat userId={userId} roomId={roomState.id} />
+                  <RoomChat
+                    userId={userId}
+                    roomId={roomState.id}
+                    initialMessages={roomState.messages}
+                    username={username}
+                  />
                 </SheetContent>
               </Sheet>
             )}
@@ -313,7 +317,12 @@ export default function RoomPage({
           {roomState.chatEnabled && (
             <div className="w-64 border-l hidden lg:flex flex-col h-full">
               <div className="flex-1 min-h-0">
-                <RoomChat userId={userId} roomId={roomState.id} />
+                <RoomChat
+                  userId={userId}
+                  roomId={roomState.id}
+                  initialMessages={roomState.messages}
+                  username={username}
+                />
               </div>
             </div>
           )}

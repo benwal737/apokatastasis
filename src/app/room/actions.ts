@@ -1,5 +1,5 @@
 "use server";
-import { RoomInput } from "@/types";
+import { MessageInput, RoomInput } from "@/types";
 import { getSelf } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -66,6 +66,16 @@ export const getRoom = async (slug: string) => {
         chatEnabled: true,
         createdAt: true,
         povs: true,
+        messages: {
+          select: {
+            id: true,
+            senderId: true,
+            content: true,
+            sentAt: true,
+            username: true,
+          },
+          take: 20,
+        },
       },
     });
     return room; // Return room or null
@@ -148,6 +158,23 @@ export const deleteRoom = async (roomId: string) => {
     return { success: true };
   } catch (error) {
     console.error("Error deleting room:", error);
+    throw error;
+  }
+};
+
+export const sendMessage = async (messageInput: MessageInput) => {
+  try {
+    const message = await prisma.message.create({
+      data: {
+        roomId: messageInput.roomId,
+        senderId: messageInput.senderId,
+        content: messageInput.content,
+        username: messageInput.username,
+      },
+    });
+    return message;
+  } catch (error) {
+    console.error("Error creating message:", error);
     throw error;
   }
 };
