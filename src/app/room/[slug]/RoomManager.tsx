@@ -20,11 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  LocalParticipant,
-  RemoteParticipant,
-  TrackPublication,
-} from "livekit-client";
+import { Participant, TrackPublication } from "livekit-client";
 import { toast } from "sonner";
 
 type ParticipantInfo = {
@@ -99,9 +95,7 @@ const RoomManager = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const participantHasActiveTracks = (
-    p: RemoteParticipant | LocalParticipant
-  ) => {
+  const participantHasActiveTracks = (p: Participant) => {
     const audioPubs: TrackPublication[] = [
       ...p.audioTrackPublications.values(),
     ];
@@ -203,18 +197,16 @@ const RoomManager = ({
       .on("trackMuted", recompute)
       .on("trackUnmuted", recompute);
 
-    const attachSpeaking = (p: LocalParticipant | RemoteParticipant) =>
+    const attachSpeaking = (p: Participant) =>
       p.on?.("isSpeakingChanged", recompute);
-    const detachSpeaking = (p: LocalParticipant | RemoteParticipant) =>
+    const detachSpeaking = (p: Participant) =>
       p.off?.("isSpeakingChanged", recompute);
 
     room.remoteParticipants.forEach(attachSpeaking);
     attachSpeaking(room.localParticipant);
 
-    const onJoined = (p: LocalParticipant | RemoteParticipant) =>
-      attachSpeaking(p);
-    const onLeft = (p: LocalParticipant | RemoteParticipant) =>
-      detachSpeaking(p);
+    const onJoined = (p: Participant) => attachSpeaking(p);
+    const onLeft = (p: Participant) => detachSpeaking(p);
 
     room.on("participantConnected", onJoined);
     room.on("participantDisconnected", onLeft);
@@ -443,9 +435,9 @@ const RoomManager = ({
                 <DialogHeader>
                   <DialogTitle>Delete Room</DialogTitle>
                   <DialogDescription>
-                    Are you sure you want to delete &quot;{roomName}&quot;? This action
-                    cannot be undone. All participants will be redirected to the
-                    homepage.
+                    Are you sure you want to delete &quot;{roomName}&quot;? This
+                    action cannot be undone. All participants will be redirected
+                    to the homepage.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

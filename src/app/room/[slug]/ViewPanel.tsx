@@ -10,14 +10,14 @@ import {
   RemoteParticipant,
   LocalTrackPublication,
   Track,
-  LocalParticipant,
+  Participant,
 } from "livekit-client";
 import { useRoom } from "@/context/RoomContext";
 import VideoTile from "./VideoTile";
 import { Tile } from "./VideoTile";
 
 function getParticipantLabel(
-  participant: RemoteParticipant | { identity: string; metadata?: string }
+  participant: Participant | { identity: string; metadata?: string }
 ): string {
   try {
     if (participant.metadata) {
@@ -116,7 +116,7 @@ export default function ViewPanel({
 
     const handleMetadataChanged = (
       metadata: string | undefined,
-      participant: RemoteParticipant | LocalParticipant
+      participant: Participant
     ) => {
       setTiles((prev) =>
         prev.map((tile) => {

@@ -1,12 +1,12 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRef, useEffect, useState } from "react";
-import { RemoteParticipant, Track, LocalParticipant } from "livekit-client";
+import { Track, Participant } from "livekit-client";
 
 export type Tile = {
   pubSid: string;
   participantIdentity: string;
-  participant: RemoteParticipant | LocalParticipant;
+  participant: Participant;
   label: string;
   attach: (el: HTMLMediaElement) => void;
   detach: (el: HTMLMediaElement) => void;
