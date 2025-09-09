@@ -62,22 +62,6 @@ model Pov {
   user     User   @relation(fields: [userId], references: [id])
 }
 
-// model Participant {
-//   id          String   @id @default(cuid())
-//   roomId      String
-//   room        Room     @relation(fields: [roomId], references: [id])
-//   userId      String
-//   user        User     @relation(fields: [userId], references: [id])
-//   displayName String
-//   role        String // host | contributor
-//   joinedAt    DateTime @default(now())
-//   lastSeenAt  DateTime @default(now())
-
-//   // reverse side of the "currentPublisher" relation:
-//   // publishedPov Pov?    @relation("PovPublisher", fields: [povId], references: [id])
-//   povId        String?
-// }
-
 model Message {
   id       String   @id @default(cuid())
   roomId   String

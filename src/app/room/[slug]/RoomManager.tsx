@@ -25,7 +25,7 @@ import {
   RemoteParticipant,
   TrackPublication,
 } from "livekit-client";
-import { toast } from "sonner"; // ✅ make sure you have your toast lib here
+import { toast } from "sonner";
 
 type ParticipantInfo = {
   id: string;
@@ -35,7 +35,6 @@ type ParticipantInfo = {
   isSpeaking: boolean;
 };
 
-// Minimal Avatar (kept as you had it)
 const Avatar = ({
   className,
   children,
@@ -220,7 +219,7 @@ const RoomManager = ({
     room.on("participantConnected", onJoined);
     room.on("participantDisconnected", onLeft);
 
-    // Handle data events - debounce updates to prevent flickering
+    // data events
     let updateTimeout: NodeJS.Timeout | null = null;
     const handleDataReceived = (payload: Uint8Array) => {
       try {

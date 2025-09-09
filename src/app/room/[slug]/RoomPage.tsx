@@ -25,8 +25,16 @@ import {
   HoverCardTrigger,
 } from "@radix-ui/react-hover-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { Settings } from "lucide-react";
+import { Settings, MessageCircle } from "lucide-react";
 import RoomManager from "./RoomManager";
+import RoomChat from "./RoomChat";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function RoomPage({
   room: initialRoom,
@@ -64,7 +72,7 @@ export default function RoomPage({
     };
   }, [roomState.hostId, userId, initialRoom]);
 
-  // Polling fallback to detect room deletion for viewers who don't receive LiveKit data messages
+  // polls every 3 seconds to check if room still exists
   useEffect(() => {
     if (!isMounted) return;
 
@@ -81,14 +89,12 @@ export default function RoomPage({
       }
     };
 
-    // Poll every 3 seconds to check if room still exists
     const pollInterval = setInterval(pollRoomExists, 3000);
 
     return () => {
       clearInterval(pollInterval);
     };
   }, [roomState.id, isMounted]);
-
 
   const handleRTMP = useCallback(async () => {
     if (!isMounted) return;
@@ -154,12 +160,29 @@ export default function RoomPage({
 
   return (
     <RoomProvider wsUrl={wsUrl} token={roomToken}>
-      <div className="p-6 space-y-6">
-        <header className="flex items-center justify-between">
+      <div className="flex flex-col overflow-hidden h-[calc(100vh-4rem)]">
+        {/* Header */}
+        <header className="flex-shrink-0 flex items-center justify-between p-6 border-b">
           <div>
             <h1 className="text-2xl font-bold">{roomState.name}</h1>
           </div>
           <div className="flex items-center gap-2">
+            {/* Mobile Chat Toggle */}
+            {roomState.chatEnabled && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="lg:hidden">
+                    <MessageCircle className="size-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-80 p-0">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Room Chat</SheetTitle>
+                  </SheetHeader>
+                  <RoomChat userId={userId} roomId={roomState.id} />
+                </SheetContent>
+              </Sheet>
+            )}
             {isHost && (
               <Button
                 variant="outline"
@@ -272,23 +295,41 @@ export default function RoomPage({
               </SignedIn>
             )}
           </div>
-          <RoomManager
-            roomManagerOpen={roomManagerOpen}
-            setRoomManagerOpen={setRoomManagerOpen}
-            username={username}
-            roomId={roomState.id}
-            roomName={roomState.name}
-            onStreamEnded={() => {
-              setPubOpen(false);
-              setIsLive(false);
-              setPubToken("");
-            }}
-          />
         </header>
+        {/* Main Content */}
+        <div className="flex flex-1 min-h-0">
+          {/* Left Side */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 overflow-y-auto">
+              <ViewPanel
+                onManage={() => {
+                  setPubOpen(true);
+                }}
+              />
+            </div>
+          </div>
 
-        <ViewPanel
-          onManage={() => {
-            setPubOpen(true);
+          {/* Right Side */}
+          {roomState.chatEnabled && (
+            <div className="w-64 border-l hidden lg:flex flex-col h-full">
+              <div className="flex-1 min-h-0">
+                <RoomChat userId={userId} roomId={roomState.id} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dialogs and Modals */}
+        <RoomManager
+          roomManagerOpen={roomManagerOpen}
+          setRoomManagerOpen={setRoomManagerOpen}
+          username={username}
+          roomId={roomState.id}
+          roomName={roomState.name}
+          onStreamEnded={() => {
+            setPubOpen(false);
+            setIsLive(false);
+            setPubToken("");
           }}
         />
 
