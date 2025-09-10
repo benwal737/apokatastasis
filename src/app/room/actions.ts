@@ -73,12 +73,13 @@ export const getRoom = async (slug: string) => {
             content: true,
             sentAt: true,
             username: true,
+            roomId: true,
           },
           take: 20,
         },
       },
     });
-    return room; // Return room or null
+    return room;
   } catch (error) {
     console.error("Error fetching room:", error);
     return null;

@@ -1,5 +1,3 @@
-import { LocalParticipant, RemoteParticipant } from "livekit-client";
-
 export type RoomInput = {
   name: string;
   chatEnabled: boolean;

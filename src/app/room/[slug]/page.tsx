@@ -9,12 +9,10 @@ const page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   try {
     const room = await getRoom((await params).slug);
     
-    // If room doesn't exist (null), redirect to homepage
     if (!room) {
       redirect("/");
     }
 
-    // Generate unique identity for each participant
     const participantIdentity = self?.id || `guest-${Math.random().toString(36).substring(2, 15)}`;
     console.log("Participant connecting with identity:", participantIdentity, "Name:", self?.username || "Guest");
     
