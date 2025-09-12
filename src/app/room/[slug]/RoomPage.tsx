@@ -72,29 +72,6 @@ export default function RoomPage({
     };
   }, [roomState.hostId, userId, initialRoom]);
 
-  // polls every 3 seconds to check if room still exists
-  useEffect(() => {
-    if (!isMounted) return;
-
-    const pollRoomExists = async () => {
-      try {
-        const response = await fetch(`/api/room/${roomState.id}/exists`);
-        if (!response.ok && response.status === 404) {
-          toast.error("This room has been deleted by the host.");
-          window.location.href = "/";
-        }
-      } catch (error) {
-        console.error("Error checking room existence:", error);
-      }
-    };
-
-    const pollInterval = setInterval(pollRoomExists, 3000);
-
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [roomState.id, isMounted]);
-
   const handleRTMP = useCallback(async () => {
     if (!isMounted) return;
     setLoading(true);

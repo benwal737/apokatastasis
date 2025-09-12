@@ -147,6 +147,9 @@ export const deleteRoom = async (roomId: string) => {
     }
 
     await prisma.$transaction([
+      prisma.message.deleteMany({
+        where: { roomId: roomId },
+      }),
       prisma.pov.deleteMany({
         where: { roomId: roomId },
       }),
