@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
-import { registerChatHandlers } from "./src/chat/handlers";
+import { registerHandlers } from "./src/handlers/handlers";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -15,7 +15,7 @@ app.prepare().then(() => {
   const io = new Server(httpServer);
 
   io.on("connection", (socket) => {
-    registerChatHandlers(io, socket);
+    registerHandlers(io, socket);
   });
 
   httpServer

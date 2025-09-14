@@ -24,10 +24,6 @@ const RoomChat = ({
   const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
-    socket.on("connect", () => {
-      socket.emit("join_room", roomId);
-    });
-
     socket.on("new_message", (message: Message) => {
       setMessages((prev) => [...prev, message]);
     });
@@ -37,7 +33,6 @@ const RoomChat = ({
     });
 
     return () => {
-      socket.off("connect");
       socket.off("new_message");
       socket.off("connect_error");
     };

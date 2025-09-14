@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Participant, TrackPublication } from "livekit-client";
 import { toast } from "sonner";
+import { socket } from "@/lib/socketClient";
 
 type ParticipantInfo = {
   id: string;
@@ -322,9 +323,12 @@ const RoomManager = ({
     setIsDeleting(true);
 
     try {
+      console.log("Deleting room:", roomId);
       await deleteRoom(roomId);
-      router.push("/");
-      toast.success("Room deleted successfully");
+      
+      console.log("Room deleted from database, emitting socket event");
+      socket.emit("delete_room", roomId);
+      
     } catch (error) {
       console.error("Error deleting room:", error);
       toast.error("Failed to delete room");

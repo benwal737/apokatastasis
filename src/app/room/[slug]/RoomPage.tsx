@@ -35,6 +35,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { socket } from "@/lib/socketClient";
+import { useRouter } from "next/navigation";
 
 export default function RoomPage({
   room: initialRoom,
@@ -49,6 +51,7 @@ export default function RoomPage({
   userId: string | null;
   username: string | null;
 }) {
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [roomState, setRoomState] = useState(initialRoom);
   const [pubOpen, setPubOpen] = useState(false);
@@ -71,6 +74,36 @@ export default function RoomPage({
       setIsMounted(false);
     };
   }, [roomState.hostId, userId, initialRoom]);
+
+  useEffect(() => {
+    console.log("Setting up socket for room:", roomState.id);
+    
+    const handleConnect = () => {
+      console.log("Socket connected, joining room:", roomState.id);
+      socket.emit("join_room", roomState.id);
+    };
+
+    const handleRoomDeleted = (deletedRoomId: string) => {
+      console.log("Room deleted event:", deletedRoomId, "Current room:", roomState.id);
+      if (deletedRoomId === roomState.id) {
+        toast.info("Room has been deleted");
+        router.replace("/");
+      }
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("room_deleted", handleRoomDeleted);
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      console.log("Cleaning up socket listeners for room:", roomState.id);
+      socket.off("connect", handleConnect);
+      socket.off("room_deleted", handleRoomDeleted);
+    };
+  }, [roomState.id, router]);
 
   const handleRTMP = useCallback(async () => {
     if (!isMounted) return;
